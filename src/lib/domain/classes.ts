@@ -446,7 +446,7 @@ export function deriveMagePath(quiz: MageQuizAnswers | null): MagePath | null {
 }
 
 /** The stored self-reported answers that decide whether Mage is shown. */
-type MagePreferenceInput = Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null };
+export type MagePreferenceInput = Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null };
 
 export function defaultClassPreference(editable: boolean): ContributorClassPreference {
   return {

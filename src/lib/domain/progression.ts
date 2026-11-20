@@ -1,18 +1,19 @@
-import type {
-  Achievement,
-  ContributionEvidence,
-  DashboardScope,
-  DashboardSnapshot,
-  Profile,
-  Progression,
-  Rank,
-  Repository,
-  SkillTrack,
-  TrackProgress,
-  ContributorClassPreference,
-  MasteryProgress,
+import {
+  SKILL_TRACKS,
+  type Achievement,
+  type ContributionEvidence,
+  type DashboardScope,
+  type DashboardSnapshot,
+  type Profile,
+  type Progression,
+  type Rank,
+  type Repository,
+  type SkillTrack,
+  type TrackProgress,
+  type ContributorClassPreference,
+  type MasteryProgress,
 } from "@/lib/contracts";
-import { buildProfileWithDisplayTitle, defaultClassPreference, deriveCharacterClass, withMagePreference } from "./classes";
+import { buildProfileWithDisplayTitle, defaultClassPreference, deriveCharacterClass, withMagePreference, type MagePreferenceInput } from "./classes";
 import { deriveMastery, getMasteryGuide } from "./mastery";
 import { deriveQuestBoard, type QuestScoring } from "./quests";
 
@@ -43,6 +44,10 @@ const RANK_THRESHOLDS = {
 } as const;
 
 const GLOBAL_ONLY_ACHIEVEMENT_IDS = ["realm-dual", "realm-triple"] as const;
+
+function withoutGlobalOnly(achievements: Achievement[]): Achievement[] {
+  return achievements.filter((item) => !(GLOBAL_ONLY_ACHIEVEMENT_IDS as readonly string[]).includes(item.id));
+}
 const TITLE_UNLOCK_THRESHOLDS = {
   mergedPrFirst: 1,
   mergedPrAdvanced: 10,
@@ -165,10 +170,6 @@ type EvidenceState = {
   byTrack: Record<SkillTrack, ContributionEvidence[]>;
   byRepo: Map<string, ContributionEvidence[]>;
 };
-
-function pullRequests(ctx: EvidenceState): ContributionEvidence[] {
-  return ctx.evidence.filter((item) => item.kind === "pull_request");
-}
 
 function prepareEvidence(input: ContributionEvidence[]): EvidenceState {
   const evidence = [...input].sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
@@ -304,9 +305,9 @@ const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
     icon: "🌉",
     track: "general",
     target: 3,
-    progress: ({ byTrack }) => (["engineering", "documentation", "review"] as const).filter((track) => byTrack[track].length > 0).length,
+    progress: ({ byTrack }) => SKILL_TRACKS.filter((track) => byTrack[track].length > 0).length,
     evidenceIds: ({ byTrack }) =>
-      (["engineering", "documentation", "review"] as const)
+      SKILL_TRACKS
         .map((track) => byTrack[track][0]?.id)
         .filter((id): id is string => Boolean(id)),
   },
@@ -393,7 +394,7 @@ function deriveAchievements(ctx: EvidenceState): Achievement[] {
 }
 
 function deriveRank(ctx: EvidenceState, achievements: Achievement[]): { rank: Rank; nextRankRequirement: string | null } {
-  const trackCoverage = (["engineering", "documentation", "review"] as const).filter((track) => ctx.byTrack[track].length > 0).length;
+  const trackCoverage = SKILL_TRACKS.filter((track) => ctx.byTrack[track].length > 0).length;
   const mergedPrs = mergedPullRequests(ctx).length;
   const docs = ctx.byTrack.documentation.length;
   const reviews = ctx.byTrack.review.length;
@@ -431,7 +432,7 @@ function rankSUnlockedAt(baseEvidenceDesc: ContributionEvidence[], scope: Dashbo
     const ctx = prepareEvidence(chronological.slice(0, count));
     const achievements = deriveAchievements(ctx);
     const scoped = scope.kind === "repository"
-      ? achievements.filter((entry) => entry.id !== "realm-dual" && entry.id !== "realm-triple")
+      ? withoutGlobalOnly(achievements)
       : achievements;
     return deriveRank(ctx, scoped).rank === "S";
   };
@@ -468,14 +469,14 @@ export function deriveProgression(
   liveSyncAvailable: boolean,
   warnings: string[],
   lastSyncedAt: string | null,
-  classPreferenceInput?: Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: ContributorClassPreference["mageQuiz"] },
+  classPreferenceInput?: MagePreferenceInput,
   classPreferenceEditable = source !== "demo",
 ): DashboardSnapshot {
   const evidence = applyXp(evidenceInput).sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
   const ctx = prepareEvidence(evidence);
   const totalXp = evidence.reduce((sum, item) => sum + item.xp, 0);
   const levelMeta = levelFromXp(totalXp);
-  const byTrack: TrackProgress[] = (["engineering", "documentation", "review"] as const).map((id) => {
+  const byTrack: TrackProgress[] = SKILL_TRACKS.map((id) => {
     const items = ctx.byTrack[id];
     const xp = items.reduce((sum, item) => sum + item.xp, 0);
     return {
@@ -488,7 +489,7 @@ export function deriveProgression(
   });
   const achievements = deriveAchievements(ctx);
   const scopedAchievements = scope.kind === "repository"
-    ? achievements.filter((item) => item.id !== "realm-dual" && item.id !== "realm-triple")
+    ? withoutGlobalOnly(achievements)
     : achievements;
   const rankMeta = deriveRank(ctx, scopedAchievements);
   const mastery = deriveMastery(evidence, rankMeta.rank, rankSUnlockedAt(evidence, scope, rankMeta.rank));
