@@ -6,9 +6,14 @@ coverage/
 .env.*
 !.env.example
 data/
+.repoquest/
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 *.tsbuildinfo
 .factory/
+.opencode/opencode.json
 .DS_Store
