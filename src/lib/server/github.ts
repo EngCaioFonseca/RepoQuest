@@ -1,8 +1,7 @@
 import "server-only";
 import type { RepositoryCoverage, SkillTrack } from "@/lib/contracts";
+import { GITHUB_API_BASE, githubApiHeaders } from "./github-api";
 
-const API_BASE = "https://api.github.com";
-const USER_AGENT = "RepoQuest/0.1 (+https://github.com)";
 const REQUEST_TIMEOUT_MS = 15000;
 
 export type GitHubFailureReason = NonNullable<RepositoryCoverage["failureReason"]>;
@@ -54,13 +53,8 @@ async function fetchJson<T>(path: string): Promise<FetchJsonResult<T>> {
   const token = tokenOrThrow();
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${token}`,
-        "x-github-api-version": "2022-11-28",
-        "user-agent": USER_AGENT,
-      },
+    response = await fetch(`${GITHUB_API_BASE}${path}`, {
+      headers: githubApiHeaders(token),
       cache: "no-store",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

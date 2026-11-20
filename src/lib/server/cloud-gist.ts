@@ -1,4 +1,5 @@
 import "server-only";
+import { GITHUB_API_BASE, GITHUB_USER_AGENT, githubApiHeaders } from "./github-api";
 import { CloudSaveError, mergeSaves, playerSaveSchema, type CloudBackend, type PlayerSave } from "./cloud-save";
 
 /**
@@ -11,9 +12,7 @@ import { CloudSaveError, mergeSaves, playerSaveSchema, type CloudBackend, type P
  * Saves only hold public-repository evidence and the self-reported profile quiz.
  */
 
-const API_BASE = "https://api.github.com";
 const RAW_HOST = "gist.githubusercontent.com";
-const USER_AGENT = "RepoQuest/0.1 (+https://github.com)";
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_LIST_PAGES = 10;
 const FILE_PREFIX = "repoquest-save-";
@@ -40,13 +39,10 @@ async function gistRequest<T>(method: "GET" | "POST" | "PATCH", path: string, bo
   if (!token) throw new CloudSaveError("GITHUB_TOKEN is not configured.", "Gist cloud save needs GITHUB_TOKEN to be configured.");
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(`${GITHUB_API_BASE}${path}`, {
       method,
       headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${token}`,
-        "x-github-api-version": "2022-11-28",
-        "user-agent": USER_AGENT,
+        ...githubApiHeaders(token),
         ...(body === undefined ? {} : { "content-type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -77,7 +73,7 @@ async function fileContent(file: GistFile): Promise<string | null> {
   if (raw.protocol !== "https:" || raw.hostname !== RAW_HOST) return null;
   let response: Response;
   try {
-    response = await fetch(raw, { headers: { "user-agent": USER_AGENT }, cache: "no-store", signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    response = await fetch(raw, { headers: { "user-agent": GITHUB_USER_AGENT }, cache: "no-store", signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   } catch {
     throw new CloudSaveError("Gist raw file: network error", "GitHub could not be reached for the cloud save.");
   }
