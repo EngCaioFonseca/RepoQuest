@@ -132,6 +132,10 @@ activity streak. Repeated syncs must not award the same contribution twice.
   store it in SQLite, or include it in exported cards.
 - `DATABASE_PATH`: SQLite file path, default convention
   `./data/repoquest.db`. The containing directory must be writable.
+  `:memory:` keeps everything in memory: you can sync and look once, and
+  nothing is written to disk.
+- `CLOUD_SAVE`: set to `gist` for cloud save (default off). See
+  [Cloud save](#cloud-save).
 
 **Database path compatibility is implemented.** The server uses the first
 nonblank value of `DATABASE_PATH`, then the legacy `REPOQUEST_DB_PATH` variable,
@@ -141,6 +145,37 @@ Relative paths resolve from the server's working directory. Choosing another
 path does not move or migrate existing evidence.
 Local `.repoquest/` contents and `.sqlite`, `.sqlite-wal`, and `.sqlite-shm`
 files are excluded from Git and Docker build contexts.
+
+### Cloud save
+
+Local progress lives in the SQLite file, and later syncs only fetch new work.
+A new clone, another machine, or `docker compose down --volumes` starts with an
+empty file and would import the whole history again. Cloud save keeps a copy of
+your player state outside the machine. When the local database has no player
+yet, RepoQuest restores the most recent save before the first dashboard load or
+sync, so the next sync continues incrementally instead of starting a full
+backfill. A local player is never overwritten by the cloud copy.
+
+The save holds your profile and quiz answers, tracked repositories, evidence
+and import checkpoints. XP is not stored; it is recomputed from evidence, so
+scoring updates still apply after a restore. RepoQuest saves after every sync
+(including partial ones) and every profile change. If the save fails, sync
+still succeeds locally and the Sync panel says why. Saves from several installs
+merge: evidence is combined by its stable GitHub ID, and a repository's import
+progress never moves backwards.
+
+Set `CLOUD_SAVE=gist` and restart. There is no extra account or secret: RepoQuest uses `GITHUB_TOKEN`, which then needs
+**Gists: Read and write** (fine-grained token) or the `gist` scope (classic
+token). The first save creates one secret Gist owned by the token's user, with
+a `repoquest-save-<username>.json` file per player; a new install finds it
+automatically. Every save is a Gist revision, so you can roll back from the
+Gist page. A secret Gist is unlisted, not private: anyone with its link can
+read it. It only contains public-repository contributions and your
+self-reported profile answers. Two installs saving at the same moment can
+overwrite each other's latest changes; the next sync puts them back.
+
+Combine `DATABASE_PATH=:memory:` with `CLOUD_SAVE=gist` to keep nothing on the
+machine and restore from the Gist on every start.
 
 Next.js reads `.env.local` automatically. Docker Compose reads `.env` for
 interpolation; it does not automatically read `.env.local`.

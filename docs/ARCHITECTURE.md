@@ -162,7 +162,45 @@ Git and Docker exclude
 Use one server instance per database. WAL and a bounded busy timeout are appropriate for local
 read/write overlap; synchronous SQLite work should stay small and batched.
 Backing up a live SQLite file with a plain file copy is not guaranteed consistent;
-stop the process or use SQLite's backup facility.
+stop the process or use SQLite's backup facility. `DATABASE_PATH=:memory:` selects
+an in-memory database that is discarded when the process exits.
+
+### Cloud save
+
+`src/lib/server/cloud-save.ts` optionally keeps a copy of player state outside
+the machine. SQLite remains the working store and every domain/server module
+keeps its synchronous access; the cloud copy is only a save slot, not a second
+source of truth. `CLOUD_SAVE=gist` enables it; unset or `off` disables it.
+
+The portable unit is a Zod-validated `PlayerSave` for one player: `profiles`
+plus that player's `sync_state`, and their `repositories`, `coverage` (including
+checkpoints), and `evidence` rows. Column names and ISO-8601 text values mirror
+SQLite so a round trip is exact. Derived XP is never stored.
+
+- `cloud-gist.ts` stores one `repoquest-save-<username>.json` file per player in
+  a single secret Gist owned by the `GITHUB_TOKEN` user, found by listing that
+  user's Gists. Saves read, merge (`mergeSaves`), and PATCH the file; overlapping
+  saves are last-write-wins and repaired by the next save. Contents over the
+  API's 1 MB truncation are read from `gist.githubusercontent.com` without the
+  token.
+- Merge rules: evidence and repositories are a union by stable ID, and a
+  repository's coverage is only replaced by one whose `last_attempt_at` is not
+  older, so another install's progress never moves backwards. The stored sync
+  selection is kept when this install never synced the player.
+- Restore runs at most once per process, before the first dashboard build or
+  sync, and only when the local database has no player. It imports the most
+  recent save in one SQLite transaction and rechecks emptiness inside it, so
+  local state always wins. A failed restore is retried after a minute.
+- Save runs after each sync (including partial ones, so checkpoints survive)
+  and each profile preference change. Cloud failures never fail a sync or
+  dashboard. `DashboardSnapshot.storage` reports `local: "memory" | "file"`,
+  `cloudSave: "off" | "ready" | "error"`, the backend, a safe user-facing
+  `cloudProblem`, the last save time, and whether this process restored from
+  the cloud, without tokens, paths, or connection details. A failed save adds a
+  warning to that sync response.
+
+There is still no hosted service or authentication boundary: each player owns
+their Gist and token.
 
 ## Progression and product meaning
 

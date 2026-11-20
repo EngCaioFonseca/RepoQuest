@@ -1,5 +1,5 @@
 // Client view-model derived from src/lib/contracts.ts by normalize.ts.
-import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, Rank, RepositoryCoverage, SkillTrack } from "@/lib/contracts";
+import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, Rank, RepositoryCoverage, SkillTrack, StorageStatus } from "@/lib/contracts";
 export type { Rank, SkillTrack as Track, RepositoryCoverage };
 export const TRACKS: SkillTrack[] = ["engineering", "documentation", "review"];
 
@@ -30,6 +30,7 @@ export interface DashboardView {
   preference: PreferenceView;
   mastery: MasteryView[];
   warnings: string[];
+  storage: StorageStatus | null;
 }
 
 /** A scoped evidence item that backs a class or specialty claim. Only items present in the snapshot's evidence appear. */

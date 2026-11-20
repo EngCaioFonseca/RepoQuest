@@ -209,6 +209,20 @@ export interface MagePath {
   selfReported: true;
 }
 
+/** Where this server keeps player state. Never exposes paths or connection strings. */
+export interface StorageStatus {
+  /** `memory` discards everything when the server stops; `file` is the local SQLite database. */
+  local: "memory" | "file";
+  /** `off` when cloud save is not configured; `error` when it is misconfigured or the last save/restore failed. */
+  cloudSave: "off" | "ready" | "error";
+  /** `gist` saves to a secret GitHub Gist owned by the token user. */
+  cloudBackend: "gist" | null;
+  /** Safe, user-facing reason for an `error` state. */
+  cloudProblem: string | null;
+  lastCloudSaveAt: string | null;
+  restoredFromCloud: boolean;
+}
+
 export interface DashboardSnapshot {
   source: DataSource;
   /** All character values, evidence and coverage below use this scope. */
@@ -234,6 +248,7 @@ export interface DashboardSnapshot {
   mastery: MasteryProgress;
   /** Partial imports and provider limitations must remain visible. */
   warnings: string[];
+  storage?: StorageStatus;
 }
 
 const githubLogin = /^(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
