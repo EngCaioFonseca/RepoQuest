@@ -83,28 +83,41 @@ function resolveDatabasePath(): string {
 }
 
 const DB_PATH = resolveDatabasePath();
+let db: DatabaseSync | null = null;
 
-mkdirSync(dirname(DB_PATH), { recursive: true });
-
-const db = new DatabaseSync(DB_PATH, {
-  timeout: DB_TIMEOUT_MS,
-  enableForeignKeyConstraints: true,
-});
-db.exec(SCHEMA_SQL);
-
-const syncColumns = db.prepare("PRAGMA table_info(sync_state)").all() as Array<{ name: string }>;
-if (!syncColumns.some((column) => column.name === "selected_repositories_json")) {
-  try {
-    db.exec("ALTER TABLE sync_state ADD COLUMN selected_repositories_json TEXT NOT NULL DEFAULT '[]'");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!message.toLowerCase().includes("duplicate column name")) {
-      throw error;
+function ensureSyncStateColumn(connection: DatabaseSync): void {
+  const syncColumns = connection.prepare("PRAGMA table_info(sync_state)").all() as Array<{ name: string }>;
+  if (!syncColumns.some((column) => column.name === "selected_repositories_json")) {
+    try {
+      connection.exec("ALTER TABLE sync_state ADD COLUMN selected_repositories_json TEXT NOT NULL DEFAULT '[]'");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("duplicate column name")) {
+        throw error;
+      }
     }
   }
 }
 
+function initializeDatabase(): DatabaseSync {
+  mkdirSync(dirname(DB_PATH), { recursive: true });
+  const connection = new DatabaseSync(DB_PATH, {
+    timeout: DB_TIMEOUT_MS,
+    enableForeignKeyConstraints: true,
+  });
+  try {
+    connection.exec(SCHEMA_SQL);
+    ensureSyncStateColumn(connection);
+    return connection;
+  } catch (error) {
+    connection.close();
+    throw error;
+  }
+}
+
 export function database(): DatabaseSync {
+  if (db) return db;
+  db = initializeDatabase();
   return db;
 }
 

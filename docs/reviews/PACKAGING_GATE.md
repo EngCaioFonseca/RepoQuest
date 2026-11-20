@@ -1,20 +1,29 @@
 # Independent packaging gate — 2026-11-20
 
-## Final result: Node packaging PASS; Docker acceptance NOT RUN
+## Current result: lazy-init build and Podman/Compose container gates PASS
 
-A pre-fix clean production build exposed
-`ERR_SQLITE_ERROR: database is locked`. After the backend's concurrency fix, a
-fresh clean build and the final standalone runtime/persistence smoke both
-**passed**. The failed attempt is retained below as evidence.
-Docker/container acceptance is **not run**, because the daemon is unavailable
-and Compose is absent. This gate approves the measured Node packaging snapshot,
-not untested container deployment or overall release.
+The initial timeout-only fix passed a local build but still failed for the user
+on published `393596a`. A deterministic held-lock reproduction below confirms
+that failure. The subsequent lazy-initialization fix passes the same locked
+build, a clean build that creates no database artifacts, and the actual
+no-cache Dockerfile build through the running Podman/Compose provider.
+Non-root startup, demo/scoped APIs, SVG, and named-volume persistence across
+container recreation all pass. See the latest verification section below for
+the exact fixed source hashes.
 
-Skills applied: existing `karpathy-skills` and `codebase-design` guidance for
+**Correction to earlier runtime discovery:** `docker compose` was unavailable,
+but `/opt/homebrew/bin/docker-compose` exists and `podman compose` invokes it.
+Docker's selected Colima endpoint is unavailable; Podman's running service is
+available. The earlier blanket “Compose absent/container unavailable” conclusion
+was incomplete. Native Docker Engine and other architectures were not tested;
+the container gate below ran on Podman, Linux arm64.
+
+Skills applied: `diagnosing-bugs` for deterministic old-red/new-green reproduction,
+plus existing `karpathy-skills` and `codebase-design` guidance for
 bounded changes, module initialization review, and measured claims; the loaded
 Orca orchestration guide governs coordination. No helper agents were launched.
 
-## Source snapshot and isolation
+## Earlier local gate: source snapshot and isolation
 
 - Source: `/Users/cfonseca/Documents/GitHub/repoquest`.
 - Git HEAD: `cf25c632dce584c894a420a7d9945461bdd3c3a1`. The implementation is largely
@@ -202,7 +211,7 @@ Final runtime evidence is `$GATE/standalone-results.json`,
 `$GATE/standalone-server.log`, and `$GATE/demo-share.svg`.
 Both test server processes were terminated. No user preview process was touched.
 
-### Docker/Compose — NOT RUN
+### Earlier Docker/Compose discovery — incomplete, superseded below
 
 `docker version` exited 1. Docker client **28.1.1** is present, but its `colima`
 context cannot connect to
@@ -210,19 +219,164 @@ context cannot connect to
 
 `docker compose version` exited 1: `docker: unknown command: docker compose`.
 
-No OS application or daemon was started. No test containers or volumes were
-created. Image building, non-root runtime permissions, and container-recreation
-volume persistence remain unverified.
+No OS application or daemon was started during this earlier pass. No containers
+or volumes were created then. The missing plugin was incorrectly generalized
+to missing standalone Compose/runtime availability.
 
-## Follow-up and stack-document corrections for the lead
+## Earlier follow-up conclusions — superseded by published reproduction
 
-1. The fresh-database build failure is resolved for the final measured snapshot.
-   Failure and successful post-fix commands are retained above.
-2. `docs/STACK.md` can report the latest integrated clean production build,
-   standalone demo/API/about/SVG smoke, and isolated process-restart persistence
-   as passed on Node 24.22.3; the previous pending-production-build statement
-   is now stale.
-3. Docker/Compose runtime acceptance remains unavailable, independently of the
-   Node build result. The architect did not edit `STACK.md`.
+The timeout-only snapshot passed the measured local tests above. That evidence
+did not establish that build-time database initialization was safe: the user
+subsequently reproduced the same lock error in the published image build.
+The controlled reproduction and stronger container gate below replace that
+earlier readiness conclusion.
 
 No general test suite was redundantly rerun for this packaging gate.
+
+## Published-container regression and lazy-init verification — 17:13–17:17 UTC
+
+### Snapshot and isolation
+
+New disposable root (`CGATE` in commands):
+`/private/var/folders/18/h5j8yr7143s1k99dktd_kyz00000gn/T/opencode/repoquest-container-gate-qjra80s3`.
+
+- Published base: `393596a4dbc65357acc38bb940becf72d7e0231c`.
+- Published reproduction snapshot: 58 files at **17:13:44.214788 UTC**;
+  `$CGATE/published-manifest.json` SHA-256
+  `085a456fc67f8f87610b8ce4980afa4bcce69235cecf03e4c3b74279b2206366`.
+- Fixed current-source snapshot: 58 files at
+  **17:15:15.376299–17:15:15.758543 UTC**;
+  `$CGATE/fixed-manifest.json` SHA-256
+  `b6965fec1d661e4476ccbaf45b89c6b8f690bdb599876bd581e96e02e539d8d6`.
+- Only implementation changes from the published snapshot were:
+  - `src/lib/server/db.ts`:
+    `2e1b06e0df1ad3ac4bf28b3beb56ac3eecd44f094957f741d9c4f1e6ed6edcde`
+  - `src/lib/server/db.test.ts`:
+    `e59ea1f7538ea452cb743326f5226029ca3e2bcb54bd81afedeec3de51490d9a`
+- At **17:17:18.984454 UTC**, all source hashes still matched the checkout.
+  Subsequent changes to this report only add these results.
+
+The source-copy exclusions match the earlier gate: no credentials, local
+databases, `.next`, dependencies, Git metadata, or local agent configuration.
+Fresh `npm ci` in this copy passed with zero audit vulnerabilities.
+No live preview, database, service, OS application, or Git branch was changed.
+
+### Deterministic published-red / fixed-green build
+
+`$CGATE/locked-build.py` creates a separate SQLite probe database and holds
+`BEGIN IMMEDIATE` throughout a full production build. It removes both credential
+and legacy database environment variables, supplies only the probe
+`DATABASE_PATH`, and captures the complete child output.
+
+```sh
+python3 "$CGATE/locked-build.py" --expect locked
+# Refresh db.ts/db.test.ts from the confirmed fixed checkout; remove only copied .next.
+python3 "$CGATE/locked-build.py" --expect success
+```
+
+- **Published red, 17:14:09–17:14:22 UTC:** the build exited 1 at page-data
+  collection with `database is locked`, SQLite error code 5, at
+  `db.ts:93 db.exec(SCHEMA_SQL)` despite the 5000 ms timeout. The observed route
+  was `/api/sync`; the user's `/api/dashboard` failure reaches the same eager
+  initializer. Compilation and TypeScript had passed.
+- **Fixed green, 17:15:17–17:15:25 UTC:** after refreshing the two backend files
+  and deleting copied `.next`, the same held-lock production build exited 0.
+  The backend moved directory creation, opening, schema SQL, and migration into
+  first-use `database()` initialization instead of module import.
+
+Logs/results: `$CGATE/held-lock-locked-build.log`,
+`held-lock-locked-result.json`, `held-lock-success-build.log`, and
+`held-lock-success-result.json`. Published `db.ts` is retained as
+`$CGATE/published-db.ts`. The reproduction harness itself exits 0 when the
+explicit expected build outcome is observed; the child build exit codes above
+are recorded separately.
+
+A second clean fixed build, **17:15:48–17:15:56 UTC**, supplied an absent path:
+
+```sh
+env -u GITHUB_TOKEN -u REPOQUEST_DB_PATH \
+  DATABASE_PATH="$CGATE/build-must-not-create/repoquest.sqlite" \
+  NEXT_TELEMETRY_DISABLED=1 \
+  npx --yes --package=node@24.22.3 --package=npm@11.20.0 npm run build
+```
+
+Exit 0; after the build, the configured database's parent directory, source
+`data/`, and source `.repoquest/` were all still absent. This verifies no
+filesystem database initialization during the production build, rather than
+merely surviving a particular lock duration. All six application routes were
+emitted. Evidence: `$CGATE/fresh-no-db-build.log` and `fresh-no-db-result.json`.
+
+### Actual container tools and no-cache image build
+
+Read-only discovery found:
+
+- Standalone Docker Compose **2.35.1** at `/opt/homebrew/bin/docker-compose`.
+- `podman compose version` explicitly delegates to that executable.
+- Running Podman client **5.6.2**, server **5.4.1**, Linux arm64.
+- Docker CLI **28.1.1** still points at an unavailable Colima socket.
+
+The existing Podman service was used without changing connections or starting
+any application/service. Compose rendered the isolated override successfully.
+The override changes only the test image name, loopback ephemeral host port,
+empty token, and restart policy; it retains the real Dockerfile and
+`/app/data` volume arrangement.
+
+```sh
+env -u GITHUB_TOKEN -u REPOQUEST_DB_PATH \
+  podman compose --project-name repoquest-gate-qjra80s3 \
+  --file "$CGATE/source/compose.yaml" --file "$CGATE/compose.gate.yaml" \
+  build --no-cache
+```
+
+**PASS**, exit 0, **17:16:04–17:16:54 UTC**. The build sent a 125.2 kB context,
+ran `npm ci` with zero audit vulnerabilities, compiled/typechecked/generated all
+routes in the actual image, and completed all three stages. The builder collected
+page data with four workers.
+
+Image: `localhost/repoquest-gate-qjra80s3:verify`, Linux arm64, configured user
+`node`, ID
+`ecc870bba2c0b34ff648b6a67e2b2a82e8ff56edf31633d34f02770482d5cb24`.
+Evidence: `$CGATE/compose-build.log` and `compose-build-result.json`.
+
+### Non-root runtime, scoped demo, and volume recreation
+
+```sh
+python3 "$CGATE/container-smoke.py"
+xmllint --noout "$CGATE/container-demo-share.svg"
+```
+
+**PASS**, both commands exited 0, **17:16:58–17:17:03 UTC**. The harness uses
+the same isolated Compose project and checks its ownership labels before acting.
+
+- Runtime is **Node v24.22.3**, process **UID 1000**; volume directory owner is
+  UID 1000 and `DATABASE_PATH=/app/data/repoquest.db`.
+- No token is configured; the database file is absent before the first request.
+- `/`, `/about`, global dashboard, `chaoss/8Knot` dashboard and matching scoped
+  share all return 200. Snapshots explicitly identify demo and correct scope;
+  the share is demo-labelled, repository-labelled, and valid SVG/XML.
+- A synthetic sentinel is inserted directly into an isolated probe table.
+  `compose up --detach --no-build --force-recreate` replaces the container
+  while retaining the project's named volume. The new container has a distinct
+  ID, still serves demo, and reads the original sentinel.
+- First container:
+  `b4ad7c6e743d181785dd800eb612b997d9a1281728e61d41dc418ea96b8a28de`.
+- Replacement:
+  `902215699aa42cabb80fae488d53c7a47aa8d0c5ca9d919dc31c96b18c0a76c4`.
+
+Evidence: `$CGATE/container-smoke-results.json`,
+`container-smoke-commands.json`, `container-smoke.py`, and
+`container-demo-share.svg`.
+
+Cleanup used only this project's `compose down --volumes`, exit 0. A subsequent
+read-only check confirmed no project containers, named volume, or network remain.
+The uniquely tagged test image was removed without pruning unrelated resources.
+No GitHub sync was performed. Local disposable evidence remains for inspection.
+
+### Current handoff
+
+The earlier timeout-only build claim is superseded: the measured fix is lazy
+runtime initialization, supported by old-red/new-green evidence and a real
+Podman/standalone-Compose build plus non-root/volume smoke. The lead can inspect
+and publish the two backend changes; this worker made no commit or push.
+`STACK.md` should describe container verification as Podman/Compose Linux arm64,
+not native Docker Engine, and should no longer claim Compose is absent.

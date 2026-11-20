@@ -14,8 +14,10 @@ ability or a global leaderboard.
 repository progression, Progression Guide, and SVG sharing are implemented.
 Clean Node.js installation, production build, standalone smoke checks, and
 database persistence across restart have passed. Desktop/mobile keyboard checks
-have also passed. Docker runtime/volume verification and a full accessibility
-audit remain outstanding; see [verification results](docs/reviews/PACKAGING_GATE.md).
+have also passed. Container image builds, non-root runtime, and volume persistence
+were verified with Podman and standalone Docker Compose on Linux ARM64.
+Native Docker Engine verification and a full accessibility audit remain
+outstanding; see [verification results](docs/reviews/PACKAGING_GATE.md).
 
 ## Features
 
@@ -104,8 +106,9 @@ interpolation; it does not automatically read `.env.local`.
 
 Requires Docker with Compose. The image builds a standalone Next.js server,
 runs as the non-root `node` user, and stores SQLite under `/app/data`.
-The configuration is included, but container startup and volume persistence
-have not yet been verified in Docker.
+Image build, non-root startup, and volume persistence across container recreation
+have been verified using Podman with standalone Docker Compose on Linux ARM64.
+Native Docker Engine has not been separately tested.
 
 ```sh
 cp .env.example .env
@@ -173,7 +176,8 @@ progress and show the error, never silently substitute demo data.
 - GitHub network access is needed for sync. The local demo and persisted
   dashboard should remain usable without it.
 - Node production packaging and live historical imports have been verified.
-  Docker acceptance and a full accessibility audit remain outstanding.
+  Podman/Compose container acceptance has passed; native Docker Engine testing
+  and a full accessibility audit remain outstanding.
 
 See [architecture](docs/ARCHITECTURE.md) for boundaries and invariants, and the
 [factory brief](docs/FACTORY.md) for current acceptance criteria. Contributions
