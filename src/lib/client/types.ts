@@ -1,5 +1,5 @@
 // Client view-model derived from src/lib/contracts.ts by normalize.ts.
-import type { DashboardScope, Rank, RepositoryCoverage, SkillTrack } from "@/lib/contracts";
+import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, Rank, RepositoryCoverage, SkillTrack } from "@/lib/contracts";
 export type { Rank, SkillTrack as Track, RepositoryCoverage };
 export const TRACKS: SkillTrack[] = ["engineering", "documentation", "review"];
 
@@ -24,8 +24,27 @@ export interface DashboardView {
   contributions: ContributionView[];
   achievements: AchievementView[];
   quests: QuestView[];
+  characterClass: ClassView | null;
+  /** Earned title only; `title` above is the display title that may append the self-reported Mage badge. */
+  earnedTitle: string;
+  preference: PreferenceView;
+  mastery: MasteryView[];
   warnings: string[];
 }
+
+/** A scoped evidence item that backs a class or specialty claim. Only items present in the snapshot's evidence appear. */
+export interface ClassEvidenceView { id: string; title: string; url: string; reason?: string }
+export type MasteryView = Omit<MasteryDisciplineProgress, "evidenceIds"> & { evidence: ClassEvidenceView[]; unlinked: number };
+export interface ClassView {
+  id: CharacterClassId; name: string; summary: string; state: CharacterClassState;
+  mix: { classId: CharacterClassId; share: number; evidenceCount: number; evidence: ClassEvidenceView[]; unlinked: number }[];
+  specialties: { id: string; label: string; explanation: string; evidence: ClassEvidenceView[]; unlinked: number }[];
+  qualifying: number; rejected: number; classifierVersion: string; limits: string[];
+}
+
+/** Self-reported, never inferred from evidence. Does not affect XP, rank or the contribution class. */
+export type PreferenceView = ContributorClassPreference;
+export const AI_USAGE_LABELS: Record<AiToolUsage, string> = { unspecified: "Not specified", none: "None", occasional: "Occasional", frequent: "Frequent", ai_first: "AI-first" };
 
 export interface SyncSummary { imported: number; unchanged: number; partial: boolean; warnings: string[]; retryAt?: string }
 

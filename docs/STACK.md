@@ -124,13 +124,68 @@ Repository-count achievements are global-only. High repository ranks are attaina
 
 The `/about` page reads **`getProgressionGuide()` from the progression module**. This exposes the scoring version, rank requirements, title meanings, XP rules, level formula, and displayed-title policy to the interface. Keeping the guide beside the calculation rules makes changes easier to reconcile and test.
 
+### Contributor classes and technical specialties
+
+`src/lib/domain/classes.ts` adds a separate, versioned deterministic classifier.
+It receives the already scoped contribution evidence and returns
+`DashboardSnapshot.characterClass`: the primary RPG class, contribution mix,
+technical specialties, per-evidence assignment reasons, and classification limits.
+Its pure `getClassGuide()` export supplies the corresponding guide metadata.
+
+Healer represents bug-fixing work; Warrior represents implementation; Scribe
+represents documentation; and Guardian represents reviews. Adventurer is the neutral result for insufficient
+evidence or a tie. Qualifying contributions cast at most one class vote, with
+review and documentation attribution taking precedence over engineering topic
+keywords. Specialty hints can describe multiple technical areas.
+
+Evidence classification uses existing titles, contribution kinds, and tracks.
+It adds no GitHub requests, makes no claim to detect AI-tool usage, and does not
+alter XP, ranks, or earned progression titles. Scoped share cards include the
+same computed class as their dashboard.
+
+Mage is a separate self-reported designation: declaring an AI-engineering role
+or reporting AI-tool use appends it to the displayed earned title. Contributor
+preferences are persisted locally and shared across that contributor's scopes,
+separately from the evidence classifier. The underlying earned title remains
+unchanged.
+
+An optional Mage Path quiz records three practice axes—workflow, engineering,
+and verification—alongside existing AI-tool usage intensity. Shared ordered rules
+derive Prompt Adept, Agent Weaver, Orchestrator, Agents Monarch, or Intelligence
+Monarch. Higher reported capabilities satisfy lower gates, and usage frequency
+alone does not determine the path. `getClassGuide()` supplies questions, options,
+and selection requirements to both the form and guide; `deriveMagePath()` supplies
+the preview and server result. No answers default to the general Mage designation.
+The existing profile API supports replacing answers, preserving omitted answers,
+and explicitly clearing them with `null`.
+
+### Earned specialty Monarchs
+
+`src/lib/domain/mastery.ts` derives the endgame achievements separately from
+classes and self-reported preferences. Seven specialties each require scoped
+Rank S, 20 qualifying contributions, and three distinct UTC calendar months.
+Technical specialties reuse the classifier's topic signals but count only
+authored merged engineering PRs. Documentation and reviews have their own
+qualifying evidence rules.
+
+The base progression engine calculates Rank S before adding mastery achievements,
+preventing circular unlocks. Unlock dates use the latest required historical gate;
+the Rank S date is found through a bounded search over historical base progression.
+Shared metadata drives the Monarch progress cards and guide, while
+`DashboardSnapshot.mastery` exposes each gate and its supporting evidence IDs.
+Earned Monarch titles take priority over ordinary earned titles through a
+documented stable order. Mage quiz answers do not influence these achievements.
+
 ## API and data flow
 
-The application exposes three main API routes:
+The application exposes these API routes:
 
 - **`GET /api/dashboard`** — the active contributor's global character snapshot.
 - **`POST /api/sync`** — validate a username and repository list, import/resume GitHub history, and return a global snapshot with import/coverage information.
 - **`GET /api/share`** — an SVG character card generated from the current stored evidence.
+- **`PATCH /api/profile`** — saves the active contributor's self-reported AI-engineer
+  and AI-tool usage preferences. The request includes the current username to
+  reject stale forms after switching contributors; it does not import GitHub data.
 
 Dashboard and share requests accept an optional repository selector:
 

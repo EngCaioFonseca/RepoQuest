@@ -1,8 +1,9 @@
 import "server-only";
 import type { DashboardScope, DashboardSnapshot, Repository, RepositoryCoverage } from "@/lib/contracts";
+import { defaultClassPreference } from "@/lib/domain/classes";
 import { buildDemoDashboard } from "@/lib/domain/demo";
 import { deriveProgression } from "@/lib/domain/progression";
-import { readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
+import { readClassPreference, readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
 import { resolveTrackedScope } from "./scope";
 
 const DEFAULT_REPOSITORIES = ["chaoss/8Knot", "chaoss/CollectOSS"] as const;
@@ -56,18 +57,11 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
   if (!username) {
     const trackedRepositories = [...DEFAULT_REPOSITORIES];
     const scope = resolveTrackedScope(requestedScope, trackedRepositories);
-    const demo = buildDemoDashboard();
-    demo.scope = scope;
+    const demo = buildDemoDashboard(scope);
     demo.trackedRepositories = trackedRepositories;
-    if (scope.kind === "repository") {
-      demo.repositories = demo.repositories.filter((repo) => repo.id.toLowerCase() === scope.repositoryId.toLowerCase());
-      demo.evidence = demo.evidence.filter((item) => item.repositoryId.toLowerCase() === scope.repositoryId.toLowerCase());
-      demo.achievements = demo.achievements.map((item) => ({
-        ...item,
-        evidenceIds: item.evidenceIds.filter((id) => demo.evidence.some((evidence) => evidence.id === id)),
-      }));
-    }
     demo.liveSyncAvailable = liveSyncAvailable;
+    demo.classPreference = defaultClassPreference(false);
+    demo.profile.displayTitle = demo.profile.title;
     if (!liveSyncAvailable) {
       demo.warnings = ["Demo mode: live sync unavailable until GITHUB_TOKEN is configured."];
     } else {
@@ -83,6 +77,7 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
     displayName: username,
     avatarUrl: null,
   };
+  const classPreference = readClassPreference(username);
   const selectedRepoSet = new Set(trackedRepositories.map((value) => value.toLowerCase()));
   const filterBySelection = selectedRepoSet.size > 0;
   const selectedEvidence = readEvidence(username).filter((item) => !filterBySelection || selectedRepoSet.has(item.repositoryId.toLowerCase()));
@@ -123,6 +118,8 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
     liveSyncAvailable,
     scopeWarnings(scope, [...sync.warnings, ...mapWarnings(coverageRows)]),
     sync.lastSyncedAt,
+    classPreference,
+    true,
   );
 
   const byRepo = new Map(snapshot.repositories.map((repo) => [repo.id, repo]));

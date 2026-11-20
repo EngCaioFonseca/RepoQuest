@@ -28,6 +28,8 @@ export function CurrentCharacter({ scope }: { scope: ScopeSel }) {
       <div>
         <p className="caption">{view.scope.kind === "global" ? "Your Global character" : `Your ${view.scope.repositoryId} character`}{view.mode === "demo" ? ", from demo data (not your real contributions)" : ""}</p>
         <p className="you-line"><b>{view.title}</b>. Level {view.level}, rank {view.rank}, {formatXp(view.totalXp)} XP.</p>
+        {view.preference.mageActive && <p className="small"><span className="chip self">Mage{view.preference.magePath ? ` — ${view.preference.magePath.name}` : ""}: self-reported</span></p>}
+        <p className="small">{view.characterClass ? `Class: ${view.characterClass.name} (${view.characterClass.state}).` : "Class unavailable."}</p>
         <p className="small">{view.nextRankRequirement ? `Next rank: ${view.nextRankRequirement}` : "No higher rank to reach."}</p>
       </div>
     </div>

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { CurrentCharacter } from "@/components/CurrentCharacter";
 import { dashboardScopeQuerySchema } from "@/lib/contracts";
 import { getProgressionGuide } from "@/lib/domain/progression";
+import { getClassGuide, isMageActive, AI_TOOL_USAGE_VALUES } from "@/lib/domain/classes";
+import { AI_USAGE_LABELS } from "@/lib/client/types";
+import { CLASS_GLYPH } from "@/components/ClassSection";
 import { scopeQuery } from "@/lib/client/scope";
 
 export const metadata: Metadata = {
@@ -18,6 +21,7 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
   const scope = parsed.success ? parsed.data : ({ kind: "global" } as const);
   const q = scopeQuery(scope);
   const guide = getProgressionGuide();
+  const cg = getClassGuide();
   const r = guide.xp.evidenceRules;
   const xpRows: [string, number][] = [
     ["Merged engineering pull request", r.mergedEngineeringPr],
@@ -31,7 +35,7 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
       <header className="topbar">
         <Link className="brand" href={`/${q}`}>Repo<span>Quest</span></Link>
         <nav aria-label="Guide sections" className="open">
-          <a href="#you">You</a><a href="#concepts">Concepts</a><a href="#ranks">Ranks</a><a href="#titles">Titles</a><a href="#xp">XP</a><a href="#limits">Limits</a>
+          <a href="#you">You</a><a href="#concepts">Concepts</a><a href="#classes">Classes</a><a href="#mastery">Monarchs</a><a href="#ranks">Ranks</a><a href="#titles">Titles</a><a href="#xp">XP</a><a href="#limits">Limits</a>
         </nav>
         <Link className="btn" href={`/${q}`}>Back to dashboard</Link>
       </header>
@@ -57,6 +61,65 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
             <div><dt>Title</dt><dd>Names a specific accomplishment. You can unlock several; one is displayed. {guide.displayedTitleSelection}</dd></div>
             <div><dt>Global and Repository views</dt><dd>Global covers the repositories you track, not all of GitHub. A Repository view applies the same rules to your evidence in that one repository only. Levels are never copied between views or added together. {guide.scopeRules.note}</dd></div>
           </dl>
+        </section>
+
+        <section className="panel" id="classes" aria-labelledby="cl-h">
+          <h2 id="cl-h">Classes and specialties</h2>
+          <p>{cg.distinctions.progressionTitleVsClass}</p>
+          <p className="small">A class describes the kind of work in your contributions in the view you are looking at. It is a heuristic from titles, kinds and tracks (classifier {cg.classifierVersion}), not from reading code, and it says nothing about the tools you used or your job.</p>
+          <div className="class-guide">
+            {cg.classes.map((c) => (
+              <article key={c.id} className={`class-card class-${c.id}`}>
+                <h3><span aria-hidden="true">{CLASS_GLYPH[c.id]}</span> {c.name}</h3>
+                <p>{c.summary}</p>
+                <p className="small"><strong>Votes:</strong> {c.voteRule}</p>
+              </article>
+            ))}
+          </div>
+          <h3 className="sub">Specialties</h3>
+          <dl className="defs">{cg.specialties.map((s) => <div key={s.id}><dt>{s.label}</dt><dd>{s.explanation}</dd></div>)}</dl>
+          <h3 className="sub">How the class is chosen</h3>
+          <ul className="bullets">
+            <li>{cg.votePolicy.oneVotePerContribution}</li><li>{cg.votePolicy.dedupeRule}</li><li>{cg.votePolicy.tieRule}</li>
+            <li>{cg.votePolicy.insufficientEvidenceRule}</li><li>{cg.votePolicy.scopeRule}</li>
+          </ul>
+          <h3 className="sub">States</h3>
+          <dl className="defs">{cg.stateRules.map((s) => <div key={s.state}><dt>{s.state}</dt><dd>{s.meaning}</dd></div>)}</dl>
+          <h3 className="sub">The Mage badge is self-reported</h3>
+          <p>{cg.distinctions.mageBadgeMode}</p>
+          <p className="small">You set it yourself in the AI profile panel on the dashboard. It is saved for you and appears the same in Global and every repository view. It adds to your title (for example, your earned title followed by Mage) and never changes XP, rank, level or the class chosen from your contributions. Nothing about your tools is inferred from your work.</p>
+          <table className="xp-table">
+            <caption className="sr">When the Mage badge is shown for each AI tool usage answer</caption>
+            <thead><tr><th scope="col">AI tool usage you report</th><th scope="col">Mage badge</th></tr></thead>
+            <tbody>{AI_TOOL_USAGE_VALUES.map((v) => <tr key={v}><th scope="row">{AI_USAGE_LABELS[v]}</th><td>{isMageActive({ isAiEngineer: false, aiToolUsage: v }) ? "Shown" : "Not shown"}</td></tr>)}</tbody>
+          </table>
+          <p className="small">Ticking "I am an AI engineer" shows the badge whatever usage you choose.</p>
+          <h3 className="sub" id="mage-paths">Find your Mage path</h3>
+          <p>{cg.distinctions.magePathMode} The optional quiz describes your current practice, not a verified level of knowledge. AI-tool usage intensity alone never grants an advanced path.</p>
+          <ol className="mage-paths">
+            {cg.mageQuiz.paths.map((path) => <li key={path.id}><h4>{path.name}</h4><p>{path.summary}</p><p className="small"><strong>Selected when:</strong> {path.requirement}</p></li>)}
+          </ol>
+          <p className="small">No quiz answers means the general Mage designation. You can edit or clear your answers in the dashboard. Clearing answers removes the subclass; turning off AI engineer and selecting None or Not specified hides the Mage designation entirely. Your earned title, contribution class, and XP remain unchanged.</p>
+          <details className="more">
+            <summary>What the quiz asks</summary>
+            <dl className="defs">{Object.entries(cg.mageQuiz.questions).map(([key, question]) => (
+              <div key={key}><dt>{question.label}</dt><dd><ul>{question.options.map((option) => <li key={option.value}><strong>{option.label}:</strong> {option.description}</li>)}</ul></dd></div>
+            ))}</dl>
+          </details>
+          <p className="hint">Mage Path rules: {cg.magePathVersion}. All paths are self-reported and apply across your repository views.</p>
+          <p>{cg.distinctions.evolveHint}</p>
+        </section>
+
+        <section className="panel" id="mastery" aria-labelledby="mastery-h">
+          <h2 id="mastery-h">Earned Monarchs: the endgame after Rank S</h2>
+          <p>Each specialty has a final achievement: reach Rank {guide.mastery.requiredRank}, record at least {guide.mastery.requiredContributions} qualifying contributions, and span {guide.mastery.requiredDistinctMonths} distinct UTC calendar months. All three gates must be met in the current scope. Contributions from before reaching S count toward the specialty gates.</p>
+          <div className="class-guide">{guide.mastery.titles.map((item) => (
+            <article key={item.id} className="class-card"><h3>{item.title}</h3><p>{item.unlock}</p></article>
+          ))}</div>
+          <p className="small">Technical specialties count your authored, merged engineering pull requests with matching topic signals. Documentation counts merged documentation pull requests and closed documentation issues; Review counts submitted reviews. Reviewing somebody else's backend change does not establish your authored backend specialty.</p>
+          <p className="small">Rank S is calculated from the original progression achievements first. Monarch achievements cannot unlock themselves by raising your rank. The unlock date is when the last required gate was met in your contribution history, not the day you imported it.</p>
+          <p>{guide.displayedTitleSelection}</p>
+          <p className="small">These are evidence-backed game milestones, not verified professional qualifications. Mage Path quiz results—including the self-reported Intelligence Monarch—never unlock an earned specialty Monarch or change its progress. Imported metadata has classification limits.</p>
         </section>
 
         <section className="panel" id="ranks" aria-labelledby="r-h">

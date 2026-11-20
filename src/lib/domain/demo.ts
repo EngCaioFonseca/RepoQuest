@@ -1,4 +1,4 @@
-import type { ContributionEvidence, DashboardSnapshot, Repository, RepositoryCoverage } from "@/lib/contracts";
+import type { ContributionEvidence, DashboardScope, DashboardSnapshot, Repository, RepositoryCoverage } from "@/lib/contracts";
 import { deriveProgression } from "./progression";
 
 const DEMO_REPOSITORIES = ["chaoss/8Knot", "chaoss/CollectOSS"] as const;
@@ -20,8 +20,8 @@ function coverage(username: string, repositoryId: string): RepositoryCoverage {
   };
 }
 
-export function buildDemoDashboard(): DashboardSnapshot {
-  const username = "engcaiofonseca";
+export function buildDemoDashboard(scope: DashboardScope = { kind: "global" }): DashboardSnapshot {
+  const username = "demo-adventurer";
   const repositories: Repository[] = DEMO_REPOSITORIES.map((slug) => {
     const [owner, name] = slug.split("/");
     return {
@@ -36,22 +36,28 @@ export function buildDemoDashboard(): DashboardSnapshot {
     };
   });
   const evidence: ContributionEvidence[] = [];
+  const scopedRepositories = scope.kind === "global"
+    ? repositories
+    : repositories.filter((repository) => repository.id.toLowerCase() === scope.repositoryId.toLowerCase());
+  const scopedEvidence = scope.kind === "global"
+    ? evidence
+    : evidence.filter((item) => item.repositoryId.toLowerCase() === scope.repositoryId.toLowerCase());
   const snapshot = deriveProgression(
     {
       username,
-      displayName: "engcaiofonseca",
+      displayName: "Demo Adventurer",
       avatarUrl: null,
     },
-    repositories,
-    evidence,
-    { kind: "global" },
+    scopedRepositories,
+    scopedEvidence,
+    scope,
     [...DEMO_REPOSITORIES],
     "demo",
     false,
     ["Demo mode: no fabricated contributions are shown. Run live sync to import real GitHub history."],
     null,
   );
-  const repoById = new Map(repositories.map((repo) => [repo.id, repo]));
+  const repoById = new Map(snapshot.repositories.map((repo) => [repo.id, repo]));
   for (const item of snapshot.evidence) {
     const repo = repoById.get(item.repositoryId);
     if (!repo) continue;

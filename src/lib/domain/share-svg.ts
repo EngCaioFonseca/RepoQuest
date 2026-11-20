@@ -32,6 +32,11 @@ export function renderShareSvg(snapshot: DashboardSnapshot): string {
   const warning = snapshot.warnings[0] ? `Warning: ${snapshot.warnings[0]}` : "No warnings";
   const repoCount = snapshot.repositories.length;
   const scopeLabel = snapshot.scope.kind === "global" ? "Global" : `Repository: ${snapshot.scope.repositoryId}`;
+  const displayTitle = snapshot.classPreference.mageActive
+    ? snapshot.classPreference.magePath
+      ? `${snapshot.profile.title} · Mage — ${snapshot.classPreference.magePath.name} (self-reported)`
+      : `${snapshot.profile.title} · Mage (self-reported)`
+    : snapshot.profile.displayTitle;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="title desc">
   <title id="title">RepoQuest card for ${esc(snapshot.profile.username)}</title>
@@ -46,7 +51,7 @@ export function renderShareSvg(snapshot: DashboardSnapshot): string {
   <text x="36" y="56" fill="#E2E8F0" font-size="15">RepoQuest • ${esc(snapshot.source === "demo" ? "Demo data (sample character)" : "Live sync snapshot")} • ${esc(scopeLabel)}</text>
   <text x="36" y="104" fill="#F8FAFC" font-size="34" font-weight="700">${esc(snapshot.profile.displayName || snapshot.profile.username)}</text>
   <text x="36" y="136" fill="#BFDBFE" font-size="18">@${esc(snapshot.profile.username)}</text>
-  <text x="36" y="174" fill="#DBEAFE" font-size="20">${esc(snapshot.profile.title)} • Rank ${snapshot.progression.rank} • Lv ${snapshot.progression.level}</text>
+  <text x="36" y="174" fill="#DBEAFE" font-size="20">${esc(displayTitle)} • ${esc(snapshot.characterClass.name)} • Rank ${snapshot.progression.rank} • Lv ${snapshot.progression.level}</text>
   <text x="36" y="198" fill="#DBEAFE" font-size="16">Total XP: ${snapshot.progression.totalXp} • Evidence: ${snapshot.evidence.length} • Repositories: ${repoCount}</text>
   ${bars}
   <text x="36" y="418" fill="#E2E8F0" font-size="12">${esc(warning)}</text>
