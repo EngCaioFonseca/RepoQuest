@@ -1,3 +1,4 @@
+import "server-only";
 import type { ApiError } from "@/lib/contracts";
 import type { ZodType } from "zod";
 
