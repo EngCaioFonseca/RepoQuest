@@ -13,17 +13,19 @@ import { ScopeSwitch } from "./ScopeSwitch";
 import { ProfilePanel, type PrefDraft } from "./ProfilePanel";
 import { ClassBadge, ClassSection } from "./ClassSection";
 import { MasterySection } from "./MasterySection";
+import { RelicVault } from "./RelicVault";
 import { Journal, Realms, Recent, Tracks } from "./Sections";
 import { Quests } from "./QuestSections";
 import { SyncPanel, type SyncForm } from "./SyncPanel";
+import { ClassPortrait, TitleRibbonIcon } from "./VisualObjects";
 
 // Prefill is the requested real identity and the shared default repositories. It is form state only:
 // a loaded snapshot (demo or live) never writes into it.
 const DEFAULT_FORM: SyncForm = { username: "engcaiofonseca", repos: [...DEFAULT_REPOSITORIES] };
 const STORE = "repoquest.form.v2"; // v2 drops older saved prefills (empty username, pre-redirect repo slugs)
 const SCOPE_STORE = "repoquest.scope.v1"; // view preference only; never sent to sync
-const PANEL_IDS = ["class", "profile", "tracks", "quests", "realms", "mastery", "journal", "recent", "sync"] as const;
-const NAV = [["tracks", "Tracks"], ["realms", "Realms"], ["class", "Class"], ["mastery", "Monarchs"], ["quests", "Quests"], ["journal", "Journal"], ["recent", "Evidence"], ["sync", "Sync"]] as const;
+const PANEL_IDS = ["class", "vault", "profile", "tracks", "quests", "realms", "mastery", "journal", "recent", "sync"] as const;
+const NAV = [["tracks", "Tracks"], ["realms", "Realms"], ["class", "Class"], ["vault", "Relics"], ["mastery", "Monarchs"], ["quests", "Quests"], ["journal", "Journal"], ["recent", "Evidence"], ["sync", "Sync"]] as const;
 
 
 export function Dashboard() {
@@ -174,7 +176,15 @@ export function Dashboard() {
             {view.warnings.length > 0 && <div className="banner warn"><strong>Warnings.</strong><ul>{view.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></div>}
 
             <section className="hero" aria-label="Character">
-              <RankSigil rank={view.rank} />
+              <div className="hero-emblems">
+                <RankSigil rank={view.rank} />
+                {view.characterClass && (
+                  <a className="hero-class-medallion" href="#class" aria-label={`Class: ${view.characterClass.name}`}>
+                    <ClassPortrait classId={view.characterClass.id} size="md" />
+                    <span className={`hero-class-tag class-${view.characterClass.id}`}>{view.characterClass.name}</span>
+                  </a>
+                )}
+              </div>
               <div className="hero-main">
                 <p className="caption">{view.scope.kind === "global" ? "Global character: all tracked repositories." : `Repository character: ${view.scope.repositoryId}, from your contributions there only.`} Local rank {view.rank}, a personal game score, not a verified skill or public ranking.</p>
                 <h1>{view.profile.displayName}</h1>
@@ -183,7 +193,7 @@ export function Dashboard() {
                 <div className="xp-line"><span className="lvl">Level<b>{view.level}</b></span><span className="small">{formatXp(view.levelXp)} / {formatXp(view.nextLevelXp)} XP this level, {formatXp(view.totalXp)} total{incomplete && view.mode === "live" ? " (provisional)" : ""}</span></div>
                 <Meter value={view.levelXp} max={view.nextLevelXp} label="Level progress" />
                 {view.nextRankRequirement && <p className="small">Next rank: {view.nextRankRequirement}</p>}
-                {view.titles.length > 0 && <ul className="titles" aria-label="Earned titles">{view.titles.map((t) => <li key={t} className="chip">{t}</li>)}</ul>}
+                {view.titles.length > 0 && <ul className="titles" aria-label="Earned titles">{view.titles.map((t) => <li key={t} className="chip title-chip"><TitleRibbonIcon />{t}</li>)}</ul>}
               </div>
               <div className="hero-actions">
                 <button className="btn primary" onClick={() => void share()}>Download card (SVG)</button>
@@ -200,6 +210,7 @@ export function Dashboard() {
             <div className="grid">
               <div className="col">
                 <ClassSection view={view} />
+                <RelicVault view={view} />
                 <ProfilePanel view={view} onSave={savePrefs} />
                 <Tracks tracks={view.tracks} />
                 <Quests quests={view.quests} log={view.questLog} logHref={`/quests${scopeQuery(scope)}`} />

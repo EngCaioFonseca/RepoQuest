@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatDate, formatXp } from "@/lib/client/format";
 import type { CompletedQuestView, QuestLogView, QuestView, Relic, Renown } from "@/lib/client/types";
 import { Empty, Meter, Panel } from "./Primitives";
+import { QuestChest } from "./VisualObjects";
 
 const RARITY_ORDER: Relic["rarity"][] = ["legendary", "epic", "rare", "uncommon", "common"];
 const RARITY_LABEL: Record<Relic["rarity"], string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
@@ -27,19 +28,25 @@ export function RenownBar({ renown }: { renown: Renown }) {
 
 export function QuestCard({ quest }: { quest: QuestView }) {
   const left = quest.target - quest.progress;
+  const chestTrack = quest.track === "engineering" || quest.track === "documentation" || quest.track === "review" ? quest.track : undefined;
   return (
-    <li className={`quest${quest.recommendation ? " suggested" : ""}${quest.completed ? " done" : ""}`}>
-      <div className="quest-top">
-        <div>
-          <p className="caption">{quest.chainId === "bounty" ? `Bounty, open through ${quest.endsAt ? formatDate(new Date(Date.parse(quest.endsAt) - 1).toISOString()) : "this month"}` : `Tier ${quest.tier}`}</p>
-          <h3>{quest.title}</h3>
+    <li className={`quest${quest.recommendation ? " suggested" : ""}${quest.completed ? " done quest-complete" : ""}`}>
+      <div className="quest-row">
+        <QuestChest completed={quest.completed} track={chestTrack} size="md" />
+        <div className="quest-body">
+          <div className="quest-top">
+            <div>
+              <p className="caption">{quest.chainId === "bounty" ? `Bounty, open through ${quest.endsAt ? formatDate(new Date(Date.parse(quest.endsAt) - 1).toISOString()) : "this month"}` : `Tier ${quest.tier}`}</p>
+              <h3>{quest.title}</h3>
+            </div>
+            <span className={`chip${quest.completed ? " chip-earned" : ""}`}>{quest.completed ? "Claimed" : quest.rewardXp > 0 ? `~${formatXp(quest.rewardXp)} XP` : `${left} to go`}</span>
+          </div>
+          <p className="small">{quest.description}</p>
+          <Meter value={quest.progress} max={quest.target} label={`${quest.title} progress`} tone={quest.track} />
+          <p className="small quest-reward">{quest.completed ? "Reward claimed:" : "Reward:"} <RelicBadge relic={quest.reward} /></p>
+          {quest.recommendation && <p className="small suggest">★ {quest.recommendation}</p>}
         </div>
-        <span className="chip">{quest.completed ? "Claimed" : quest.rewardXp > 0 ? `~${formatXp(quest.rewardXp)} XP` : `${left} to go`}</span>
       </div>
-      <p className="small">{quest.description}</p>
-      <Meter value={quest.progress} max={quest.target} label={`${quest.title} progress`} tone={quest.track} />
-      <p className="small quest-reward">{quest.completed ? "Reward claimed:" : "Reward:"} <RelicBadge relic={quest.reward} /></p>
-      {quest.recommendation && <p className="small suggest">★ {quest.recommendation}</p>}
     </li>
   );
 }

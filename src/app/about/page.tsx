@@ -5,7 +5,8 @@ import { dashboardScopeQuerySchema } from "@/lib/contracts";
 import { getProgressionGuide } from "@/lib/domain/progression";
 import { getClassGuide, isMageActive, AI_TOOL_USAGE_VALUES } from "@/lib/domain/classes";
 import { AI_USAGE_LABELS } from "@/lib/client/types";
-import { CLASS_GLYPH } from "@/components/ClassSection";
+import { RankSigil } from "@/components/Primitives";
+import { ClassPortrait, MagePathSigil, MonarchCrown, SpecialtyBadgeIcon } from "@/components/VisualObjects";
 import { scopeQuery } from "@/lib/client/scope";
 import { getQuestGuide } from "@/lib/domain/quests";
 
@@ -72,14 +73,19 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
           <div className="class-guide">
             {cg.classes.map((c) => (
               <article key={c.id} className={`class-card class-${c.id}`}>
-                <h3><span aria-hidden="true">{CLASS_GLYPH[c.id]}</span> {c.name}</h3>
-                <p>{c.summary}</p>
+                <div className="class-card-head">
+                  <ClassPortrait classId={c.id} size="sm" />
+                  <div>
+                    <h3>{c.name}</h3>
+                    <p>{c.summary}</p>
+                  </div>
+                </div>
                 <p className="small"><strong>Votes:</strong> {c.voteRule}</p>
               </article>
             ))}
           </div>
           <h3 className="sub">Specialties</h3>
-          <dl className="defs">{cg.specialties.map((s) => <div key={s.id}><dt>{s.label}</dt><dd>{s.explanation}</dd></div>)}</dl>
+          <dl className="defs">{cg.specialties.map((s) => <div key={s.id}><dt className="inline-icon-head"><SpecialtyBadgeIcon specialtyId={s.id} size={18} /> {s.label}</dt><dd>{s.explanation}</dd></div>)}</dl>
           <h3 className="sub">How the class is chosen</h3>
           <ul className="bullets">
             <li>{cg.votePolicy.oneVotePerContribution}</li><li>{cg.votePolicy.dedupeRule}</li><li>{cg.votePolicy.tieRule}</li>
@@ -99,7 +105,13 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
           <h3 className="sub" id="mage-paths">Find your Mage path</h3>
           <p>{cg.distinctions.magePathMode} The optional quiz describes your current practice, not a verified level of knowledge. AI-tool usage intensity alone never grants an advanced path.</p>
           <ol className="mage-paths">
-            {cg.mageQuiz.paths.map((path) => <li key={path.id}><h4>{path.name}</h4><p>{path.summary}</p><p className="small"><strong>Selected when:</strong> {path.requirement}</p></li>)}
+            {cg.mageQuiz.paths.map((path) => (
+              <li key={path.id}>
+                <h4 className="inline-icon-head"><MagePathSigil pathId={path.id} size={22} /> {path.name}</h4>
+                <p>{path.summary}</p>
+                <p className="small"><strong>Selected when:</strong> {path.requirement}</p>
+              </li>
+            ))}
           </ol>
           <p className="small">No quiz answers means the general Mage designation. You can edit or clear your answers in the dashboard. Clearing answers removes the subclass; turning off AI engineer and selecting None or Not specified hides the Mage designation entirely. Your earned title, contribution class, and XP remain unchanged.</p>
           <details className="more">
@@ -116,7 +128,15 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
           <h2 id="mastery-h">Earned Monarchs: the endgame after Rank S</h2>
           <p>Each specialty has a final achievement: reach Rank {guide.mastery.requiredRank}, record at least {guide.mastery.requiredContributions} qualifying contributions, and span {guide.mastery.requiredDistinctMonths} distinct UTC calendar months. All three gates must be met in the current scope. Contributions from before reaching S count toward the specialty gates.</p>
           <div className="class-guide">{guide.mastery.titles.map((item) => (
-            <article key={item.id} className="class-card"><h3>{item.title}</h3><p>{item.unlock}</p></article>
+            <article key={item.id} className="class-card monarch-guide-card">
+              <div className="class-card-head">
+                <MonarchCrown disciplineId={item.id as "backend" | "frontend" | "ai" | "systems" | "qa" | "documentation" | "review"} unlocked size={44} />
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.unlock}</p>
+                </div>
+              </div>
+            </article>
           ))}</div>
           <p className="small">Technical specialties count your authored, merged engineering pull requests with matching topic signals. Documentation counts merged documentation pull requests and closed documentation issues; Review counts submitted reviews. Reviewing somebody else's backend change does not establish your authored backend specialty.</p>
           <p className="small">Rank S is calculated from the original progression achievements first. Monarch achievements cannot unlock themselves by raising your rank. The unlock date is when the last required gate was met in your contribution history, not the day you imported it.</p>
@@ -130,7 +150,7 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
           <ol className="ladder">
             {guide.ranks.map((x) => (
               <li key={x.rank} className="rung">
-                <div className={`sigil sm rank-${x.rank}`} role="img" aria-label={`Rank ${x.rank}`}><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" /></svg><span>{x.rank}</span></div>
+                <RankSigil rank={x.rank} size="sm" />
                 <div><h3>Rank {x.rank}</h3><p>{x.meaning}</p><p className="advance"><strong>To advance:</strong> {x.advancement}</p></div>
               </li>
             ))}

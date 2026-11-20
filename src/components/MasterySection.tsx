@@ -4,6 +4,7 @@ import { scopeQuery } from "@/lib/client/scope";
 import type { DashboardView } from "@/lib/client/types";
 import { getMasteryGuide } from "@/lib/domain/mastery";
 import { Panel } from "./Primitives";
+import { MonarchCrown } from "./VisualObjects";
 
 const guide = getMasteryGuide();
 const disciplineNames = { backend: "Backend", frontend: "Frontend", ai: "AI engineering", systems: "Systems", qa: "QA and reliability", documentation: "Documentation", review: "Review" } as const;
@@ -20,11 +21,16 @@ export function MasterySection({ view, incomplete }: { view: DashboardView; inco
         <ul className="mastery-list">
           {view.mastery.map((item) => (
             <li key={item.id} className={`mastery-card${item.unlockedAt ? " unlocked" : ""}`}>
-              <div className="quest-top">
-                <div><p className="caption">{disciplineNames[item.id]}</p><h3>{item.title}</h3></div>
-                <span className="chip">{item.unlockedAt ? "Earned" : "Locked"}</span>
+              <div className="mastery-head">
+                <MonarchCrown disciplineId={item.id} unlocked={Boolean(item.unlockedAt)} />
+                <div className="mastery-title-col">
+                  <div className="quest-top">
+                    <div><p className="caption">{disciplineNames[item.id]}</p><h3>{item.title}</h3></div>
+                    <span className={`chip${item.unlockedAt ? " chip-earned" : ""}`}>{item.unlockedAt ? "Earned" : "Locked"}</span>
+                  </div>
+                  {item.unlockedAt && <p className="small">Unlocked {formatDate(item.unlockedAt)} from your contribution history.</p>}
+                </div>
               </div>
-              {item.unlockedAt && <p className="small">Unlocked {formatDate(item.unlockedAt)} from your contribution history.</p>}
               <ul className="mastery-gates" aria-label={`${item.title} requirements`}>
                 <li className={item.rankGate.met ? "met" : ""}>{item.rankGate.met ? "✓" : "○"} Rank {item.rankGate.required}{!item.rankGate.met && ` (currently ${view.rank})`}</li>
                 <li className={item.contributionGate.remaining === 0 ? "met" : ""}>{item.contributionGate.remaining === 0 ? "✓" : "○"} {item.contributionGate.current} / {item.contributionGate.required} contributions{item.contributionGate.remaining > 0 && ` · ${item.contributionGate.remaining} to go`}</li>

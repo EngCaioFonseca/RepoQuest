@@ -4,6 +4,7 @@ import { profilePreferencePatchSchema, type AiToolUsage, type MageQuizAnswers } 
 import { deriveDisplayTitle, deriveMagePath, getClassGuide, isMageActive } from "@/lib/domain/classes";
 import type { DashboardView } from "@/lib/client/types";
 import { Panel } from "./Primitives";
+import { ClassPortrait, MagePathSigil } from "./VisualObjects";
 
 export interface PrefDraft { isAiEngineer: boolean; aiToolUsage: AiToolUsage; mageQuiz: MageQuizAnswers | null }
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; warning?: string | null } | { kind: "error"; message: string; fields?: Record<string, string> };
@@ -108,7 +109,10 @@ export function ProfilePanel({ view, onSave }: { view: DashboardView; onSave: (d
         </div>
 
         <div className="mage-result" aria-live="polite" aria-atomic="true">
-          <span className="mage-seal" aria-hidden="true">✦</span>
+          <div className="mage-visuals">
+            <ClassPortrait classId="mage" size="sm" />
+            <MagePathSigil pathId={path?.id} size={26} />
+          </div>
           <div>
             <p className="caption">Your self-reported designation preview</p>
             <h3>{path?.name ?? (active ? "Mage" : "No Mage designation")}</h3>

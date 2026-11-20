@@ -5,6 +5,7 @@ import { formatXp } from "@/lib/client/format";
 import { scopeLabel, type ScopeSel } from "@/lib/client/scope";
 import type { DashboardView } from "@/lib/client/types";
 import { RankSigil } from "./Primitives";
+import { ClassPortrait } from "./VisualObjects";
 
 /** Read-only look at the current scoped character. Never syncs. */
 export function CurrentCharacter({ scope }: { scope: ScopeSel }) {
@@ -24,7 +25,10 @@ export function CurrentCharacter({ scope }: { scope: ScopeSel }) {
   if (!view) return <div className="banner info" role="status"><span className="spinner" aria-hidden="true" /> Loading the {scopeLabel(scope)} character…</div>;
   return (
     <div className="you">
-      <RankSigil rank={view.rank} />
+      <div className="you-emblems">
+        <RankSigil rank={view.rank} />
+        {view.characterClass && <ClassPortrait classId={view.characterClass.id} size="sm" />}
+      </div>
       <div>
         <p className="caption">{view.scope.kind === "global" ? "Your Global character" : `Your ${view.scope.repositoryId} character`}{view.mode === "demo" ? ", from demo data (not your real contributions)" : ""}</p>
         <p className="you-line"><b>{view.title}</b>. Level {view.level}, rank {view.rank}, {formatXp(view.totalXp)} XP.</p>
