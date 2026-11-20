@@ -231,7 +231,6 @@ select:hover { border-color: var(--verd); }
 .chip.self { margin-left: var(--s2); font: 400 .78rem var(--sans); font-style: normal; vertical-align: middle; }
 
 /* quests, relics and renown */
-.quest-head { display: flex; gap: var(--s3); align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
 .quest.suggested { border-color: var(--verd); }
 .quest.done { border-left: 3px solid var(--ok); }
 .quest-reward { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
@@ -249,5 +248,20 @@ select:hover { border-color: var(--verd); }
 .recent-rewards { margin-top: var(--s4); }
 .recent-rewards ul { display: grid; gap: var(--s2); margin-top: var(--s2); }
 .arsenal { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.level-group + .level-group { margin-top: var(--s5); }
+.level-group + .level-group { margin-top: var(--s2); }
 .level-head { display: flex; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); padding-bottom: var(--s2); border-bottom: 1px solid var(--rule); }
+
+/* collapsible panels */
+.panel-title { flex: 1; min-width: 0; }
+.panel-head:has(.panel-title) { display: flex; gap: var(--s3); align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.panel-toggle { display: inline-flex; align-items: center; gap: var(--s2); min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.panel-toggle:hover { color: var(--verd); }
+.chev { display: inline-block; font-size: .8em; color: var(--verd); transition: transform .15s; }
+.panel-toggle[aria-expanded="true"] .chev, details[open] > summary .chev { transform: rotate(90deg); }
+.panel.collapsed { padding-bottom: var(--s3); }
+.panel.collapsed .panel-head { margin-bottom: 0; }
+.panel-summary { color: var(--bone); }
+.panel-tools { display: flex; justify-content: flex-end; gap: var(--s2); margin: var(--s2) 0; }
+details.level-group > summary { cursor: pointer; list-style: none; min-height: 44px; }
+details.level-group > summary::-webkit-details-marker { display: none; }
+details.level-group:not([open]) > summary { margin-bottom: 0; }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatDate, formatXp } from "@/lib/client/format";
 import type { CompletedQuestView, QuestLogView, QuestView, Relic, Renown } from "@/lib/client/types";
-import { Empty, Meter } from "./Primitives";
+import { Empty, Meter, Panel } from "./Primitives";
 
 const RARITY_ORDER: Relic["rarity"][] = ["legendary", "epic", "rare", "uncommon", "common"];
 const RARITY_LABEL: Record<Relic["rarity"], string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
@@ -44,29 +44,34 @@ export function QuestCard({ quest }: { quest: QuestView }) {
   );
 }
 
-/** Dashboard panel: the live board plus a glance at recent rewards. */
+/** Dashboard panel: bounty and suggested quests up front, other questlines one click away. */
 export function Quests({ quests, log, logHref }: { quests: QuestView[]; log: QuestLogView; logHref: string }) {
   const recent = [...log.completed].reverse().slice(0, 3);
+  const featured = quests.filter((q) => q.chainId === "bounty" || q.recommendation);
+  const rest = quests.filter((q) => !featured.includes(q));
   return (
-    <section className="panel" id="quests" aria-labelledby="quests-h">
-      <header className="panel-head quest-head">
-        <div>
-          <h2 id="quests-h">Quests</h2>
-          <p className="hint">Questlines never run out: finishing a tier opens the next one. XP still comes only from imported evidence.</p>
-        </div>
-        <Link className="btn" href={logHref}>Quest log ({log.completed.length})</Link>
-      </header>
+    <Panel id="quests" title="Quests" hint="Questlines never run out: finishing a tier opens the next one. XP still comes only from imported evidence."
+      summary={`${log.renown.rank}, ${log.renown.points} renown. ${log.completed.length} completed, ${quests.filter((q) => !q.completed).length} active.`}
+      actions={<Link className="btn" href={logHref}>Quest log ({log.completed.length})</Link>}>
       <RenownBar renown={log.renown} />
       {quests.length === 0 ? <Empty title="No active quests" body="Quests appear once a snapshot is available." /> : (
-        <ul className="quests">{quests.map((q) => <QuestCard key={q.id} quest={q} />)}</ul>
+        <>
+          <ul className="quests">{featured.map((q) => <QuestCard key={q.id} quest={q} />)}</ul>
+          {rest.length > 0 && (
+            <details className="more">
+              <summary>Show {rest.length} more questline{rest.length === 1 ? "" : "s"}</summary>
+              <ul className="quests">{rest.map((q) => <QuestCard key={q.id} quest={q} />)}</ul>
+            </details>
+          )}
+        </>
       )}
       {recent.length > 0 && (
-        <div className="recent-rewards">
-          <h3>Latest rewards</h3>
+        <details className="more recent-rewards">
+          <summary>Latest rewards ({recent.length})</summary>
           <ul>{recent.map((q) => <li key={q.id}><RelicBadge relic={q.reward} compact /> <span className="small">{q.title}, {formatDate(q.completedAt)}</span></li>)}</ul>
-        </div>
+        </details>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -106,31 +111,27 @@ export function QuestLogBody({ quests, log }: { quests: QuestView[]; log: QuestL
   const rarityCount = (r: Relic["rarity"]) => log.completed.filter((q) => q.reward.rarity === r).length;
   return (
     <>
-      <section className="panel" id="arsenal" aria-labelledby="arsenal-h">
-        <header className="panel-head">
-          <h2 id="arsenal-h">Arsenal</h2>
-          <p className="hint">{log.completed.length} relic{log.completed.length === 1 ? "" : "s"} collected. {RARITY_ORDER.map((r) => `${rarityCount(r)} ${RARITY_LABEL[r].toLowerCase()}`).join(", ")}. Relics are trophies: they never add XP or change rank.</p>
-        </header>
+      <Panel id="arsenal" title="Arsenal" summary={`${log.completed.length} relics, ${log.renown.rank}`}
+        hint={`${log.completed.length} relic${log.completed.length === 1 ? "" : "s"} collected. ${RARITY_ORDER.map((r) => `${rarityCount(r)} ${RARITY_LABEL[r].toLowerCase()}`).join(", ")}. Relics are trophies: they never add XP or change rank.`}>
         <RenownBar renown={log.renown} />
         {log.completed.length === 0 ? <Empty title="The arsenal is empty" body="Complete any quest to earn your first relic." /> : (
           <ul className="arsenal">{[...log.completed].reverse().sort((a, b) => RARITY_ORDER.indexOf(a.reward.rarity) - RARITY_ORDER.indexOf(b.reward.rarity)).map((q) => <li key={q.id}><RelicBadge relic={q.reward} /></li>)}</ul>
         )}
-      </section>
+      </Panel>
 
-      <section className="panel" id="active" aria-labelledby="active-h">
-        <header className="panel-head"><h2 id="active-h">Active quests</h2><p className="hint">Next tier of every questline, plus this month&apos;s bounty.</p></header>
+      <Panel id="active" title="Active quests" hint="Next tier of every questline, plus this month's bounty." summary={`${quests.filter((q) => !q.completed).length} active`}>
         <ul className="quests">{quests.map((q) => <QuestCard key={q.id} quest={q} />)}</ul>
-      </section>
+      </Panel>
 
-      <section className="panel" id="completed" aria-labelledby="completed-h">
-        <header className="panel-head"><h2 id="completed-h">Completed quests by level</h2><p className="hint">Replayed from your evidence in date order. Each group is the character level you held right after the quest was completed.</p></header>
-        {levels.length === 0 ? <Empty title="No quests completed yet" body="Sync your history or land a contribution to complete your first quest." /> : levels.map((level) => (
-          <div key={level} className="level-group">
-            <h3 className="level-head">Level {level} <span className="small">{byLevel.get(level)!.length} quest{byLevel.get(level)!.length === 1 ? "" : "s"}</span></h3>
+      <Panel id="completed" title="Completed quests by level" summary={`${log.completed.length} quests across ${levels.length} levels`}
+        hint="Replayed from your evidence in date order. Each group is the character level you held right after the quest was completed. The two most recent levels start open.">
+        {levels.length === 0 ? <Empty title="No quests completed yet" body="Sync your history or land a contribution to complete your first quest." /> : levels.map((level, i) => (
+          <details key={level} className="level-group" open={i < 2}>
+            <summary className="level-head"><span className="chev" aria-hidden="true">▸</span>Level {level} <span className="small">{byLevel.get(level)!.length} quest{byLevel.get(level)!.length === 1 ? "" : "s"}: {byLevel.get(level)!.map((q) => q.reward.icon).join(" ")}</span></summary>
             <ul className="quests">{[...byLevel.get(level)!].reverse().map((q) => <CompletedQuestItem key={q.id} quest={q} />)}</ul>
-          </div>
+          </details>
         ))}
-      </section>
+      </Panel>
     </>
   );
 }

@@ -8,6 +8,7 @@ import { isIncomplete } from "@/lib/client/coverage";
 import { ApiError, type DashboardView, type SyncSummary } from "@/lib/client/types";
 import { GLOBAL, parseStoredScope, scopeLabel, scopeMatches, scopeQuery, type ScopeSel } from "@/lib/client/scope";
 import { Meter, RankSigil } from "./Primitives";
+import { setPanelOpen, setPanelsOpen } from "@/lib/client/panels";
 import { ScopeSwitch } from "./ScopeSwitch";
 import { ProfilePanel, type PrefDraft } from "./ProfilePanel";
 import { ClassBadge, ClassSection } from "./ClassSection";
@@ -21,6 +22,7 @@ import { SyncPanel, type SyncForm } from "./SyncPanel";
 const DEFAULT_FORM: SyncForm = { username: "engcaiofonseca", repos: [...DEFAULT_REPOSITORIES] };
 const STORE = "repoquest.form.v2"; // v2 drops older saved prefills (empty username, pre-redirect repo slugs)
 const SCOPE_STORE = "repoquest.scope.v1"; // view preference only; never sent to sync
+const PANEL_IDS = ["class", "profile", "tracks", "quests", "realms", "mastery", "journal", "recent", "sync"] as const;
 const NAV = [["tracks", "Tracks"], ["realms", "Realms"], ["class", "Class"], ["mastery", "Monarchs"], ["quests", "Quests"], ["journal", "Journal"], ["recent", "Evidence"], ["sync", "Sync"]] as const;
 
 
@@ -99,7 +101,7 @@ export function Dashboard() {
       setRefreshError(await refresh());
     } catch (e) {
       const retry = e instanceof ApiError && e.retryAt ? ` Try again after ${new Date(e.retryAt).toLocaleString()}.` : "";
-      if (e instanceof ApiError) setSyncFields(e.fields);
+      if (e instanceof ApiError) { setSyncFields(e.fields); if (e.fields) setPanelOpen("sync", true); }
       setSyncError((e instanceof ApiError && e.status === 429 ? `Rate limited: ${e.message}` : e instanceof Error ? e.message : "Sync failed") + retry);
       // Refresh so coverage the server recorded for the failed attempt is shown; the sync error stays visible.
       setRefreshError(await refresh());
@@ -129,7 +131,7 @@ export function Dashboard() {
         <a className="brand" href="#top">Repo<span>Quest</span></a>
         <button className="btn ghost menu-btn" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu(!menu)}>Menu</button>
         <nav id="nav" aria-label="Sections" className={menu ? "open" : ""}>
-          {NAV.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
+          {NAV.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => { setMenu(false); setPanelOpen(id, true); }}>{label}</a>)}
           <Link href={`/quests${scopeQuery(scope)}`} onClick={() => setMenu(false)}>Quest log</Link>
           <Link href={`/about${scopeQuery(scope)}`} onClick={() => setMenu(false)}>Guide</Link>
         </nav>
@@ -191,6 +193,10 @@ export function Dashboard() {
               </div>
             </section>
 
+            <div className="panel-tools" role="group" aria-label="Dashboard sections">
+              <button type="button" className="btn ghost" onClick={() => setPanelsOpen(PANEL_IDS, true)}>Expand all</button>
+              <button type="button" className="btn ghost" onClick={() => setPanelsOpen(PANEL_IDS, false)}>Collapse all</button>
+            </div>
             <div className="grid">
               <div className="col">
                 <ClassSection view={view} />
