@@ -69,6 +69,7 @@ export function normalizeDashboard(s: DashboardSnapshot): DashboardView {
       return { ...discipline, evidence, unlinked: evidenceIds.length - evidence.length };
     }),
     warnings: s.warnings ?? [],
+    storage: s.storage ?? null,
   };
 }
 

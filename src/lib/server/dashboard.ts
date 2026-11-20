@@ -3,6 +3,7 @@ import type { DashboardScope, DashboardSnapshot, Repository, RepositoryCoverage 
 import { defaultClassPreference } from "@/lib/domain/classes";
 import { buildDemoDashboard } from "@/lib/domain/demo";
 import { deriveProgression } from "@/lib/domain/progression";
+import { restoreFromCloudOnce, storageStatus } from "./cloud-save";
 import { readClassPreference, readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
 import { resolveTrackedScope } from "./scope";
 
@@ -50,6 +51,7 @@ function scopeWarnings(scope: DashboardScope, warnings: string[]): string[] {
 }
 
 export async function buildDashboardSnapshot(forUsername?: string | null, requestedScope: DashboardScope = { kind: "global" }): Promise<DashboardSnapshot> {
+  await restoreFromCloudOnce();
   const sync = readSyncState();
   const username = (forUsername ?? sync.username)?.toLowerCase() ?? null;
   const liveSyncAvailable = Boolean(process.env.GITHUB_TOKEN?.trim());
@@ -67,6 +69,7 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
     } else {
       demo.warnings = ["No live profile has been synced yet. Run Sync to import history."];
     }
+    demo.storage = storageStatus();
     return demo;
   }
 
@@ -129,5 +132,6 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
     repo.xp += item.xp;
     repo.evidenceCount += 1;
   }
+  snapshot.storage = storageStatus();
   return snapshot;
 }

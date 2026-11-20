@@ -214,7 +214,7 @@ export function Dashboard() {
           </>
         )}
 
-        <SyncPanel form={form} onChange={updateForm} onSync={() => void sync()} syncing={syncing} serverFields={syncFields} firstSync={view?.mode !== "live"} disabled={view ? !view.liveSyncAvailable : false} />
+        <SyncPanel form={form} onChange={updateForm} onSync={() => void sync()} syncing={syncing} serverFields={syncFields} firstSync={view?.mode !== "live"} disabled={view ? !view.liveSyncAvailable : false} storage={view?.storage} />
       </main>
       <footer className="foot small">RepoQuest runs locally. Ranks and levels are a personal game layer over public contribution evidence.</footer>
     </div>
