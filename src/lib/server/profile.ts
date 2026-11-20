@@ -1,27 +1,10 @@
 import "server-only";
 import type { ContributorClassPreference, ProfilePreferencePatch } from "@/lib/contracts";
-import { defaultClassPreference, withMagePreference } from "@/lib/domain/classes";
+import { withMagePreference } from "@/lib/domain/classes";
+import { KnownApiError } from "./api-error";
 import { readClassPreference, readProfile, readSyncState, updateClassPreference } from "./repository";
 
-export class ProfilePreferenceError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
-
-export function readCurrentClassPreference(): { username: string | null; preference: ContributorClassPreference } {
-  const sync = readSyncState();
-  const username = sync.username?.toLowerCase() ?? null;
-  if (!username) {
-    return { username: null, preference: defaultClassPreference(false) };
-  }
-  const stored = readClassPreference(username);
-  return { username, preference: withMagePreference(stored, true) };
-}
+export class ProfilePreferenceError extends KnownApiError {}
 
 export function updateCurrentClassPreference(expectedUsername: string, patch: ProfilePreferencePatch): { username: string; preference: ContributorClassPreference } {
   const sync = readSyncState();

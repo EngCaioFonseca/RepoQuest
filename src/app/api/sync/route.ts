@@ -1,5 +1,5 @@
-import { syncRequestSchema, type SyncRequest } from "@/lib/contracts";
-import { errorJson } from "@/lib/server/api-error";
+import { syncRequestSchema } from "@/lib/contracts";
+import { errorJson, parseJsonBody } from "@/lib/server/api-error";
 import { GitHubSyncError } from "@/lib/server/github";
 import { rejectIfNonJson, rejectIfUntrustedLocalRequest } from "@/lib/server/request-guard";
 import { SyncInProgressError, syncFromGitHub } from "@/lib/server/sync";
@@ -26,21 +26,11 @@ export async function POST(request: Request): Promise<Response> {
   const nonJson = rejectIfNonJson(request, "Sync");
   if (nonJson) return nonJson;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errorJson("invalid_json", "Request body must be valid JSON.", 400);
-  }
-
-  const parsed = syncRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    const fields = Object.fromEntries(parsed.error.issues.map((issue) => [issue.path.join("."), issue.message]));
-    return errorJson("invalid_request", "Invalid sync request payload.", 400, { fields });
-  }
+  const input = await parseJsonBody(request, syncRequestSchema, "Invalid sync request payload.");
+  if ("response" in input) return input.response;
 
   try {
-    const response = await syncFromGitHub(parsed.data as SyncRequest);
+    const response = await syncFromGitHub(input.data);
     return Response.json(response);
   } catch (error) {
     if (error instanceof SyncInProgressError) {

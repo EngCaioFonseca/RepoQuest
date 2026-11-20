@@ -1,15 +1,8 @@
 import "server-only";
 import { dashboardScopeQuerySchema, type DashboardScope } from "@/lib/contracts";
+import { KnownApiError } from "./api-error";
 
-export class ScopeError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
+export class ScopeError extends KnownApiError {}
 
 export function parseScopeFromRequest(request: Request): DashboardScope {
   const url = new URL(request.url);
