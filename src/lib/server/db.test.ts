@@ -138,8 +138,12 @@ describe("database bootstrap", () => {
 
     const db = new DatabaseSync(databasePath);
     const columns = db.prepare("PRAGMA table_info(sync_state)").all() as Array<{ name: string }>;
+    const profileColumns = db.prepare("PRAGMA table_info(profiles)").all() as Array<{ name: string }>;
     db.close();
     expect(columns.some((column) => column.name === "selected_repositories_json")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "is_ai_engineer")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "ai_tool_usage")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "mage_quiz_json")).toBe(true);
   });
 
   it("handles concurrent legacy sync_state migration idempotently", async () => {
@@ -170,7 +174,11 @@ describe("database bootstrap", () => {
 
     const db = new DatabaseSync(databasePath);
     const columns = db.prepare("PRAGMA table_info(sync_state)").all() as Array<{ name: string }>;
+    const profileColumns = db.prepare("PRAGMA table_info(profiles)").all() as Array<{ name: string }>;
     db.close();
     expect(columns.some((column) => column.name === "selected_repositories_json")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "is_ai_engineer")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "ai_tool_usage")).toBe(true);
+    expect(profileColumns.some((column) => column.name === "mage_quiz_json")).toBe(true);
   });
 });

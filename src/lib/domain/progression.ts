@@ -10,7 +10,11 @@ import type {
   Repository,
   SkillTrack,
   TrackProgress,
+  ContributorClassPreference,
+  MasteryProgress,
 } from "@/lib/contracts";
+import { buildProfileWithDisplayTitle, defaultClassPreference, deriveCharacterClass, withMagePreference } from "./classes";
+import { deriveMastery, getMasteryGuide } from "./mastery";
 
 export const SCORING_VERSION = "v2";
 export const TRACK_NAMES: Record<SkillTrack, string> = {
@@ -400,6 +404,31 @@ function chooseCurrentTitle(titles: string[], rank: Rank): string {
   return titles[titles.length - 1];
 }
 
+function rankSUnlockedAt(baseEvidenceDesc: ContributionEvidence[], scope: DashboardScope, finalRank: Rank): string | null {
+  if (finalRank !== "S") return null;
+  const chronological = [...baseEvidenceDesc]
+    .filter((item) => Number.isFinite(Date.parse(item.occurredAt)))
+    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.id.localeCompare(b.id));
+  if (chronological.length === 0) return null;
+  const reachesSAt = (count: number): boolean => {
+    const ctx = prepareEvidence(chronological.slice(0, count));
+    const achievements = deriveAchievements(ctx);
+    const scoped = scope.kind === "repository"
+      ? achievements.filter((entry) => entry.id !== "realm-dual" && entry.id !== "realm-triple")
+      : achievements;
+    return deriveRank(ctx, scoped).rank === "S";
+  };
+  if (!reachesSAt(chronological.length)) return null;
+  let lo = 1;
+  let hi = chronological.length;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (reachesSAt(mid)) hi = mid;
+    else lo = mid + 1;
+  }
+  return chronological[lo - 1]?.occurredAt ?? null;
+}
+
 function applyXp(input: ContributionEvidence[]): ContributionEvidence[] {
   return input.map((item) => {
     if (item.kind === "pull_request") {
@@ -454,7 +483,7 @@ function deriveQuests(state: EvidenceState): Quest[] {
 }
 
 export function deriveProgression(
-  profileBase: Omit<Profile, "title">,
+  profileBase: Omit<Profile, "title" | "displayTitle">,
   repositories: Repository[],
   evidenceInput: ContributionEvidence[],
   scope: DashboardScope,
@@ -463,6 +492,8 @@ export function deriveProgression(
   liveSyncAvailable: boolean,
   warnings: string[],
   lastSyncedAt: string | null,
+  classPreferenceInput?: Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: ContributorClassPreference["mageQuiz"] },
+  classPreferenceEditable = source !== "demo",
 ): DashboardSnapshot {
   const evidence = applyXp(evidenceInput).sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
   const ctx = prepareEvidence(evidence);
@@ -484,7 +515,13 @@ export function deriveProgression(
     ? achievements.filter((item) => item.id !== "realm-dual" && item.id !== "realm-triple")
     : achievements;
   const rankMeta = deriveRank(ctx, scopedAchievements);
-  const titles = deriveTitles(ctx, rankMeta.rank, scope);
+  const mastery = deriveMastery(evidence, rankMeta.rank, rankSUnlockedAt(evidence, scope, rankMeta.rank));
+  const titles = [
+    ...deriveTitles(ctx, rankMeta.rank, scope),
+    ...mastery.achievements
+      .filter((item) => item.unlockedAt !== null)
+      .map((item) => item.name),
+  ];
   const progression: Progression = {
     scoringVersion: SCORING_VERSION,
     totalXp,
@@ -503,15 +540,23 @@ export function deriveProgression(
     generatedAt: new Date().toISOString(),
     lastSyncedAt,
     profile: {
-      ...profileBase,
-      title: chooseCurrentTitle(titles, rankMeta.rank),
+      ...buildProfileWithDisplayTitle(
+        {
+          ...profileBase,
+          title: chooseCurrentTitle(titles, rankMeta.rank),
+        },
+        classPreferenceInput ?? defaultClassPreference(classPreferenceEditable),
+      ),
     },
     progression,
     tracks: byTrack,
     repositories,
     evidence,
-    achievements: scopedAchievements,
+    achievements: [...scopedAchievements, ...mastery.achievements],
     quests: deriveQuests(ctx),
+    characterClass: deriveCharacterClass(evidence),
+    classPreference: withMagePreference(classPreferenceInput ?? defaultClassPreference(classPreferenceEditable), classPreferenceEditable),
+    mastery: mastery.progress,
     warnings,
   };
 }
@@ -544,9 +589,22 @@ export type ProgressionGuide = {
     globalOnlyAchievementIds: string[];
     note: string;
   };
+  mastery: {
+    version: string;
+    requiredRank: Rank;
+    requiredContributions: number;
+    requiredDistinctMonths: number;
+    titles: Array<{
+      id: string;
+      title: string;
+      track: SkillTrack;
+      unlock: string;
+    }>;
+  };
 };
 
 export function getProgressionGuide(): ProgressionGuide {
+  const masteryGuide = getMasteryGuide();
   const advancementByRank: Record<Rank, string> = {
     E: "Gain evidence in one track, then in a second track to move forward.",
     D: `Land at least ${RANK_THRESHOLDS.mergedPrsForC} merged pull requests to reach rank C.`,
@@ -578,10 +636,22 @@ export function getProgressionGuide(): ProgressionGuide {
       unlock: rule.unlock,
       globalOnly: rule.globalOnly,
     })),
-    displayedTitleSelection: `The displayed title is the last unlocked entry in TITLE_RULES list order (${TITLE_RULES.map((rule) => rule.title).join(" → ")}). If none are unlocked, it defaults to Contributor (or Open Source Champion at rank S).`,
+    displayedTitleSelection: `The displayed title is selected in two deterministic phases: first the last unlocked entry in TITLE_RULES list order (${TITLE_RULES.map((rule) => rule.title).join(" → ")}), then any unlocked mastery title overrides base titles using mastery precedence order (${masteryGuide.disciplines.map((item) => item.title).join(" → ")}). If none are unlocked, it defaults to Contributor (or Open Source Champion at rank S).`,
     scopeRules: {
       globalOnlyAchievementIds: [...GLOBAL_ONLY_ACHIEVEMENT_IDS],
       note: "Repository scope excludes global-only repository-breadth badges and titles.",
+    },
+    mastery: {
+      version: masteryGuide.version,
+      requiredRank: masteryGuide.requiredRank,
+      requiredContributions: masteryGuide.requiredContributions,
+      requiredDistinctMonths: masteryGuide.requiredDistinctMonths,
+      titles: masteryGuide.disciplines.map((discipline) => ({
+        id: discipline.id,
+        title: discipline.title,
+        track: discipline.track,
+        unlock: discipline.unlock,
+      })),
     },
   };
 }

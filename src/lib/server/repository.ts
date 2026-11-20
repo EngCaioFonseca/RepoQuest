@@ -1,5 +1,5 @@
 import "server-only";
-import type { ContributionEvidence, Profile, Repository, RepositoryCoverage } from "@/lib/contracts";
+import type { AiToolUsage, ContributionEvidence, MageQuizAnswers, ProfilePreferencePatch, Repository, RepositoryCoverage } from "@/lib/contracts";
 import { database, nowIso } from "./db";
 
 type CoverageCheckpoint = Record<string, unknown> | null;
@@ -13,7 +13,13 @@ function parseJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-export function saveProfile(profile: Omit<Profile, "title">): void {
+export type StoredProfile = {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+};
+
+export function saveProfile(profile: StoredProfile): void {
   database().prepare(`
     INSERT INTO profiles (username, display_name, avatar_url, updated_at)
     VALUES (?, ?, ?, ?)
@@ -24,7 +30,7 @@ export function saveProfile(profile: Omit<Profile, "title">): void {
   `).run(profile.username, profile.displayName, profile.avatarUrl, nowIso());
 }
 
-export function readProfile(username: string): Omit<Profile, "title"> | null {
+export function readProfile(username: string): StoredProfile | null {
   const row = database().prepare("SELECT username, display_name, avatar_url FROM profiles WHERE username = ?").get(username) as
     | { username: string; display_name: string; avatar_url: string | null }
     | undefined;
@@ -34,6 +40,61 @@ export function readProfile(username: string): Omit<Profile, "title"> | null {
     displayName: row.display_name,
     avatarUrl: row.avatar_url ?? null,
   };
+}
+
+export type StoredClassPreference = {
+  isAiEngineer: boolean;
+  aiToolUsage: AiToolUsage;
+  mageQuiz: MageQuizAnswers | null;
+};
+
+function parseMageQuiz(value: unknown): MageQuizAnswers | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const workflow = record.workflow;
+  const engineering = record.engineering;
+  const verification = record.verification;
+  if (
+    (workflow === "prompting" || workflow === "single_agent" || workflow === "multi_agent" || workflow === "agent_systems")
+    && (engineering === "prompting" || engineering === "integrating" || engineering === "building" || engineering === "operating")
+    && (verification === "manual" || verification === "automated_tests" || verification === "evaluations" || verification === "continuous")
+  ) {
+    return {
+      workflow,
+      engineering,
+      verification,
+    };
+  }
+  return null;
+}
+
+export function readClassPreference(username: string): StoredClassPreference {
+  const row = database().prepare(`
+    SELECT is_ai_engineer, ai_tool_usage, mage_quiz_json
+    FROM profiles
+    WHERE username = ?
+    LIMIT 1
+  `).get(username) as { is_ai_engineer: number | null; ai_tool_usage: string | null; mage_quiz_json: string | null } | undefined;
+  const usage = row?.ai_tool_usage;
+  const aiToolUsage: AiToolUsage = usage === "none" || usage === "occasional" || usage === "frequent" || usage === "ai_first"
+    ? usage
+    : "unspecified";
+  return {
+    isAiEngineer: row?.is_ai_engineer === 1,
+    aiToolUsage,
+    mageQuiz: parseMageQuiz(parseJson(row?.mage_quiz_json, null)),
+  };
+}
+
+export function updateClassPreference(username: string, preference: ProfilePreferencePatch): StoredClassPreference {
+  const current = readClassPreference(username);
+  const nextQuiz = preference.mageQuiz === undefined ? current.mageQuiz : preference.mageQuiz;
+  database().prepare(`
+    UPDATE profiles
+    SET is_ai_engineer = ?, ai_tool_usage = ?, mage_quiz_json = ?, updated_at = ?
+    WHERE username = ?
+  `).run(preference.isAiEngineer ? 1 : 0, preference.aiToolUsage, nextQuiz ? JSON.stringify(nextQuiz) : null, nowIso(), username);
+  return readClassPreference(username);
 }
 
 export function upsertRepository(repository: Pick<Repository, "id" | "owner" | "name" | "url" | "description">): void {

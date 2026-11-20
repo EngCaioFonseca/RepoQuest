@@ -24,11 +24,54 @@ outstanding; see [verification results](docs/reviews/PACKAGING_GATE.md).
 - Credit accessible supported contributions from before installation.
 - Switch between global and repository-specific characters.
 - Earn XP, levels, E–S ranks, titles, achievements, and quests from real evidence.
+- Discover an evidence-based character class and technical specialties, independently
+  calculated for global and repository views.
 - Understand rank requirements and title meanings in the `/about` Progression Guide.
 - Export scoped SVG character cards and keep evidence in local SQLite storage.
 
 For the technologies, architecture, and development workflow, read the
 [full-stack guide](docs/STACK.md).
+
+### Character classes
+
+Your contribution mix shapes your class:
+
+- **Healer:** bug fixes, regressions, and reliability repairs.
+- **Warrior:** implementation-heavy engineering.
+- **Mage:** an opt-in, self-reported AI designation appended to your earned title.
+- **Scribe:** documentation contributions.
+- **Guardian:** submitted reviews, including reviews of somebody else's fixes.
+- **Adventurer:** a neutral starting point when evidence is limited or leading classes tie.
+
+Contribution classes include a breakdown, supporting evidence, and technical
+specialties such as frontend, backend, AI, systems, and QA. Classification uses
+imported titles, kinds, and tracks—not code inspection or detection of AI-tool
+usage. Separately, you can declare yourself an AI engineer or report your AI-tool
+usage to display a self-reported Mage designation, such as “Gate Sentinel · Mage.”
+That preference applies across your repository views and does not change XP,
+rank, or the underlying earned title. The Progression Guide explains both systems.
+
+The optional **Mage Path quiz** asks about agent workflows, engineering practice,
+and verification alongside your reported AI-tool usage. It can append
+**Prompt Adept**, **Agent Weaver**, **Orchestrator**, **Agents Monarch**, or
+**Intelligence Monarch**, with an explanation of your result. Frequency alone
+does not grant an advanced path. Answers are editable and clearable, and every
+path is explicitly self-reported—not a verified skill certification.
+
+### Earned Monarch achievements
+
+Specialty Monarchs are the contribution-based endgame: **Rank S, 20 qualifying
+specialty contributions, and three distinct UTC calendar months** in the selected
+scope. Backend unlocks **Shadow Monarch**; frontend **Prism Monarch**; AI engineering
+**Cognition Monarch**; systems **Nexus Monarch**; QA **Aegis Monarch**;
+documentation **Lore Monarch**; and reviews **Sentinel Monarch**.
+
+The dashboard shows each gate, remaining requirements, supporting evidence, and
+the original unlock date. Technical specialties count authored merged engineering
+PRs; reviews of another person's code do not establish authored technical mastery.
+These earned titles are independent of the self-reported Mage quiz and cannot
+bootstrap their own Rank S requirement. They are game milestones, not professional
+certifications. See `/about#mastery` for qualification and title-selection rules.
 
 ## Run locally
 
@@ -140,6 +183,15 @@ The source of truth is [`src/lib/contracts.ts`](src/lib/contracts.ts).
 - `GET /api/share`: `image/svg+xml` character card from the active snapshot,
   explicitly marked demo/live and global/repository scope. Intended for download and manual sharing;
   this does not publish a profile or create a hosted public URL.
+- `PATCH /api/profile`: saves the current contributor's self-reported Mage
+  preferences with JSON `{ "username": "octocat", "preference":
+  { "isAiEngineer": true, "aiToolUsage": "frequent" } }`.
+  Usage values are `unspecified`, `none`, `occasional`, `frequent`, and `ai_first`.
+  The active username must match; demo profiles cannot be edited. Saving changes
+  the displayed designation, not imported evidence or earned progression.
+  The optional `preference.mageQuiz` contains `workflow`, `engineering`, and
+  `verification` answers. Omitting it preserves saved answers; `null` clears them.
+  See the shared schemas in `src/lib/contracts.ts` for accepted answer values.
 
 **Global and repository views:**
 global means the contributor's currently tracked repositories, not all of GitHub.

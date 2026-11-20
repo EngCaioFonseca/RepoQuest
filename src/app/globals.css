@@ -172,3 +172,60 @@ select:hover { border-color: var(--verd); }
 .guide-link { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--t-sm); }
 
 .more { margin-top: var(--s2); font-size: var(--t-sm); } .more summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--verd); }
+
+/* classes: one hue per role, glyph + name always carry the meaning too */
+.class-healer { --cc: var(--ok); } .class-warrior { --cc: var(--copper); } .class-mage { --cc: var(--amethyst); }
+.class-scribe { --cc: var(--frost); } .class-guardian { --cc: var(--verd); } .class-adventurer { --cc: var(--mute); }
+.class-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); margin: calc(var(--s2) * -1) 0 var(--s3); }
+.class-line a { color: var(--cc); text-decoration: none; font: 600 1.05rem var(--serif); } .class-line a:hover { text-decoration: underline; }
+.class-glyph { color: var(--cc); }
+.class-head { display: grid; grid-template-columns: auto 1fr; gap: var(--s4); align-items: start; padding: var(--s4); border: 1px solid var(--cc); border-radius: 6px 24px 6px 24px; background: var(--ink); }
+.class-head h3 { font-size: var(--t-lg); display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; } .class-head p { margin: var(--s1) 0 0; max-width: 62ch; }
+.class-seal { display: grid; place-items: center; width: 64px; height: 64px; font-size: 2rem; color: var(--cc); border: 2px solid var(--cc); border-radius: 50% 8px 50% 8px; }
+.notice { padding: var(--s2) var(--s3); border-left: 3px solid var(--rule-2); margin: var(--s3) 0; }
+.sub { margin: var(--s4) 0 var(--s2); font-size: var(--t-md); }
+.mixbar { display: flex; height: 14px; gap: 2px; border-radius: 2px; overflow: hidden; }
+.mixbar .seg { background: var(--cc); min-width: 6px; }
+.mix, .specs { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.mix-row, .spec { padding: var(--s3); border: 1px solid var(--rule); border-left: 3px solid var(--cc, var(--rule-2)); border-radius: var(--r); background: var(--ink); }
+.mix-row h4, .spec h4 { font: 600 var(--t-md) var(--serif); margin: 0; }
+.class-ev { display: grid; gap: var(--s1); margin-top: var(--s2); font-size: var(--t-sm); } .class-ev li { overflow-wrap: anywhere; }
+.class-ev .small { display: block; }
+@media (max-width: 520px) { .class-head { grid-template-columns: 1fr; } }
+
+/* about: classes */
+.class-guide { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: var(--s3); }
+.class-card { padding: var(--s3); border: 1px solid var(--rule); border-top: 3px solid var(--cc); border-radius: var(--r); background: var(--ink); }
+.class-card h3 { color: var(--cc); } .class-card p { margin: var(--s2) 0 0; }
+
+/* ai profile */
+.pref-form { display: grid; gap: var(--s3); }
+.check { display: flex; align-items: center; gap: var(--s3); min-height: 44px; font-weight: 600; cursor: pointer; }
+.check input { width: 20px; height: 20px; min-height: 0; accent-color: var(--verd); }
+.title-preview { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-family: var(--serif); font-size: var(--t-lg); }
+.title-preview strong { color: var(--ember); font-weight: 600; }
+.mage-quiz { border-block: 1px solid var(--rule); padding-block: var(--s4); display: grid; gap: var(--s4); }
+.quiz-invitation { display: grid; gap: var(--s3); justify-items: start; }
+.quiz-question { border: 0; padding: 0; margin: 0; min-width: 0; }
+.quiz-question legend { font-family: var(--serif); font-size: var(--t-lg); margin-bottom: var(--s3); max-width: 100%; }
+.quiz-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.quiz-option { display: flex; align-items: start; gap: var(--s2); padding: var(--s3); border: 1px solid var(--rule); border-radius: var(--r); cursor: pointer; min-height: 44px; }
+.quiz-option.selected { border-color: var(--amethyst); background: var(--slate-2); }
+.quiz-option:focus-within { outline: 3px solid var(--frost); outline-offset: 2px; }
+.quiz-option input { margin: 5px 0 0; flex: 0 0 auto; accent-color: var(--amethyst); }
+.quiz-option strong, .quiz-option .small { display: block; }
+.quiz-option .small { color: var(--mute); margin-top: var(--s1); }
+.mage-result { display: flex; gap: var(--s3); border-left: 3px solid var(--amethyst); padding: var(--s4); background: var(--slate-2); overflow-wrap: anywhere; }
+.mage-result > div { min-width: 0; }
+.mage-result h3 { color: var(--amethyst); }
+.mage-seal { color: var(--amethyst); font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.mage-paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--s3); list-style: none; padding: 0; }
+.mage-paths li { border-left: 2px solid var(--amethyst); padding: var(--s3); background: var(--slate-2); }
+.mastery-list { list-style: none; padding: 0; display: grid; gap: var(--s3); }
+.mastery-card { border: 1px solid var(--rule); border-left: 3px solid var(--copper); padding: var(--s3); border-radius: var(--r); }
+.mastery-card.unlocked { border-color: var(--verd); background: var(--slate-2); }
+.mastery-card .caption { margin: 0 0 var(--s1); }
+.mastery-gates { list-style: none; padding: 0; display: grid; gap: var(--s1); font-size: var(--t-sm); color: var(--mute); }
+.mastery-gates .met { color: var(--ok); }
+@media (max-width: 600px) { .quiz-options { grid-template-columns: 1fr; } .mage-result { padding: var(--s3); } }
+.chip.self { margin-left: var(--s2); font: 400 .78rem var(--sans); font-style: normal; vertical-align: middle; }

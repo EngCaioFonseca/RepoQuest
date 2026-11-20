@@ -1,4 +1,4 @@
-import type { ApiError as ApiErrorBody, DashboardSnapshot, SyncRequest, SyncResponse } from "@/lib/contracts";
+import type { ApiError as ApiErrorBody, ContributorClassPreference, DashboardSnapshot, ProfilePreferencePatch, SyncRequest, SyncResponse } from "@/lib/contracts";
 import { normalizeDashboard, normalizeSync } from "./normalize";
 import { scopeMatches, scopeQuery, type ScopeSel } from "./scope";
 import { ApiError, type DashboardView, type SyncSummary } from "./types";
@@ -33,6 +33,13 @@ export async function runSync(req: SyncRequest): Promise<{ dashboard: DashboardV
   const res = await call("/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(req) });
   if (!res.ok) throw await readError(res);
   return normalizeSync((await res.json()) as SyncResponse);
+}
+
+/** PATCH /api/profile. Bound to the active username so a stale form can never change another contributor. */
+export async function savePreference(username: string, preference: ProfilePreferencePatch): Promise<{ username: string; preference: ContributorClassPreference }> {
+  const res = await call("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ username, preference }) });
+  if (!res.ok) throw await readError(res);
+  return (await res.json()) as { username: string; preference: ContributorClassPreference };
 }
 
 export const shareUrl = (scope: ScopeSel): string => `/api/share${scopeQuery(scope)}`;

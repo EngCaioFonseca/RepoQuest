@@ -14,6 +14,9 @@ const SCHEMA_SQL = `
     username TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,
     avatar_url TEXT,
+    is_ai_engineer INTEGER NOT NULL DEFAULT 0,
+    ai_tool_usage TEXT NOT NULL DEFAULT 'unspecified',
+    mage_quiz_json TEXT,
     updated_at TEXT NOT NULL
   );
 
@@ -99,6 +102,34 @@ function ensureSyncStateColumn(connection: DatabaseSync): void {
   }
 }
 
+function ensureProfilePreferenceColumns(connection: DatabaseSync): void {
+  const profileColumns = connection.prepare("PRAGMA table_info(profiles)").all() as Array<{ name: string }>;
+  if (!profileColumns.some((column) => column.name === "is_ai_engineer")) {
+    try {
+      connection.exec("ALTER TABLE profiles ADD COLUMN is_ai_engineer INTEGER NOT NULL DEFAULT 0");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("duplicate column name")) throw error;
+    }
+  }
+  if (!profileColumns.some((column) => column.name === "ai_tool_usage")) {
+    try {
+      connection.exec("ALTER TABLE profiles ADD COLUMN ai_tool_usage TEXT NOT NULL DEFAULT 'unspecified'");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("duplicate column name")) throw error;
+    }
+  }
+  if (!profileColumns.some((column) => column.name === "mage_quiz_json")) {
+    try {
+      connection.exec("ALTER TABLE profiles ADD COLUMN mage_quiz_json TEXT");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("duplicate column name")) throw error;
+    }
+  }
+}
+
 function initializeDatabase(): DatabaseSync {
   mkdirSync(dirname(DB_PATH), { recursive: true });
   const connection = new DatabaseSync(DB_PATH, {
@@ -108,6 +139,7 @@ function initializeDatabase(): DatabaseSync {
   try {
     connection.exec(SCHEMA_SQL);
     ensureSyncStateColumn(connection);
+    ensureProfilePreferenceColumns(connection);
     return connection;
   } catch (error) {
     connection.close();

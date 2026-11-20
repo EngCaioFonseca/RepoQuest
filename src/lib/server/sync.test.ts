@@ -209,6 +209,8 @@ async function loadFresh(mods: { maxRequests?: string; dbPath?: string } = {}): 
   updateCoverage: (coverage: any, checkpoint: Record<string, unknown> | null) => void;
   upsertSyncState: (username: string | null, lastSyncedAt: string | null, warnings: string[], selectedRepositories: string[]) => void;
   readEvidenceRow: (id: string) => { track: string; imported_at: string } | null;
+  readClassPreference: (username: string) => { isAiEngineer: boolean; aiToolUsage: string };
+  updateClassPreference: (username: string, preference: { isAiEngineer: boolean; aiToolUsage: "unspecified" | "none" | "occasional" | "frequent" | "ai_first"; mageQuiz?: { workflow: "prompting" | "single_agent" | "multi_agent" | "agent_systems"; engineering: "prompting" | "integrating" | "building" | "operating"; verification: "manual" | "automated_tests" | "evaluations" | "continuous" } | null }) => void;
 }> {
   vi.resetModules();
   const path = mods.dbPath ?? join(mkdtempSync(join(tmpdir(), "repoquest-sync-test-")), "repoquest.sqlite");
@@ -233,6 +235,10 @@ async function loadFresh(mods: { maxRequests?: string; dbPath?: string } = {}): 
         | { track: string; imported_at: string }
         | undefined;
       return row ?? null;
+    },
+    readClassPreference: repository.readClassPreference,
+    updateClassPreference: (username, preference) => {
+      repository.updateClassPreference(username, preference);
     },
   };
 }
@@ -583,5 +589,58 @@ describe("sync service", () => {
     expect(row2?.track).toBe("engineering");
     expect(row2?.imported_at).toBe(row1?.imported_at);
     expect(second.dashboard.evidence.length).toBe(1);
+  });
+
+  it("persists self-reported mage preference per contributor with no xp/rank drift", async () => {
+    const { syncFromGitHub, buildDashboardSnapshot, updateClassPreference, readClassPreference } = await loadFresh();
+    await syncFromGitHub({ username: "engcaiofonseca", repositories: ["chaoss/CollectOSS"] });
+    const before = await buildDashboardSnapshot("engcaiofonseca", { kind: "global" });
+    updateClassPreference("engcaiofonseca", {
+      isAiEngineer: false,
+      aiToolUsage: "frequent",
+      mageQuiz: { workflow: "multi_agent", engineering: "integrating", verification: "automated_tests" },
+    });
+    const after = await buildDashboardSnapshot("engcaiofonseca", { kind: "global" });
+    expect(readClassPreference("engcaiofonseca").aiToolUsage).toBe("frequent");
+    expect(after.profile.title).toBe(before.profile.title);
+    expect(after.profile.displayTitle).toBe(`${before.profile.title} · Mage — Orchestrator`);
+    expect(after.progression).toEqual(before.progression);
+    expect(after.classPreference.mageActive).toBe(true);
+    expect(after.classPreference.magePath?.id).toBe("orchestrator");
+  });
+
+  it("keeps class preference consistent across scopes and share output", async () => {
+    const { syncFromGitHub, buildDashboardSnapshot, buildShareSvg, updateClassPreference } = await loadFresh();
+    await syncFromGitHub({ username: "engcaiofonseca", repositories: ["chaoss/8Knot", "chaoss/CollectOSS"] });
+    updateClassPreference("engcaiofonseca", { isAiEngineer: true, aiToolUsage: "none", mageQuiz: null });
+    const global = await buildDashboardSnapshot("engcaiofonseca", { kind: "global" });
+    const local = await buildDashboardSnapshot("engcaiofonseca", { kind: "repository", repositoryId: "chaoss/CollectOSS" });
+    const svg = await buildShareSvg({ kind: "repository", repositoryId: "chaoss/CollectOSS" });
+    expect(global.classPreference.mageActive).toBe(true);
+    expect(local.classPreference.mageActive).toBe(true);
+    expect(global.profile.displayTitle.endsWith(" · Mage")).toBe(true);
+    expect(local.profile.displayTitle.endsWith(" · Mage")).toBe(true);
+    expect(svg).toContain("· Mage");
+  });
+
+  it("persists class preference across module reloads (restart-like)", async () => {
+    const dbPath = join(mkdtempSync(join(tmpdir(), "repoquest-class-pref-persist-")), "repoquest.sqlite");
+    const first = await loadFresh({ dbPath });
+    await first.syncFromGitHub({ username: "engcaiofonseca", repositories: ["chaoss/CollectOSS"] });
+    first.updateClassPreference("engcaiofonseca", { isAiEngineer: false, aiToolUsage: "ai_first", mageQuiz: null });
+
+    const second = await loadFresh({ dbPath });
+    const dashboard = await second.buildDashboardSnapshot("engcaiofonseca", { kind: "global" });
+    expect(dashboard.classPreference.aiToolUsage).toBe("ai_first");
+    expect(dashboard.classPreference.mageActive).toBe(true);
+    expect(dashboard.profile.displayTitle.endsWith(" · Mage")).toBe(true);
+  });
+
+  it("uses a fictional demo identity when no contributor is synced", async () => {
+    const { buildDashboardSnapshot } = await loadFresh();
+    const demo = await buildDashboardSnapshot(undefined, { kind: "global" });
+    expect(demo.source).toBe("demo");
+    expect(demo.profile.username).toBe("demo-adventurer");
+    expect(demo.profile.displayTitle).toBe(demo.profile.title);
   });
 });

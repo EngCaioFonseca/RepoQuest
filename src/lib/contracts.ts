@@ -11,6 +11,15 @@ export type DataSource = "demo" | "live";
 export type SkillTrack = "engineering" | "documentation" | "review";
 export type Rank = "E" | "D" | "C" | "B" | "A" | "S";
 export type EvidenceKind = "pull_request" | "issue" | "review";
+export type CharacterClassId = "adventurer" | "healer" | "warrior" | "mage" | "scribe" | "guardian";
+export type CharacterClassState = "provisional" | "specialized" | "hybrid" | "ambiguous";
+export type TechnicalSpecialtyId = "general" | "backend" | "frontend" | "ai" | "systems" | "qa";
+export type AiToolUsage = "unspecified" | "none" | "occasional" | "frequent" | "ai_first";
+export type MageWorkflowLevel = "prompting" | "single_agent" | "multi_agent" | "agent_systems";
+export type MageEngineeringLevel = "prompting" | "integrating" | "building" | "operating";
+export type MageVerificationLevel = "manual" | "automated_tests" | "evaluations" | "continuous";
+export type MagePathId = "prompt_adept" | "agent_weaver" | "orchestrator" | "agents_monarch" | "intelligence_monarch";
+export type MasteryDisciplineId = "backend" | "frontend" | "ai" | "systems" | "qa" | "documentation" | "review";
 
 /** Read-only view scope; global means the contributor's tracked repositories. */
 export type DashboardScope =
@@ -21,7 +30,10 @@ export interface Profile {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  /** Progression-earned title only, never self-reported additions. */
   title: string;
+  /** UI-ready presentation title; may append self-reported class add-ons. */
+  displayTitle: string;
 }
 
 export interface Progression {
@@ -123,6 +135,80 @@ export interface Quest {
   rewardXp: number;
 }
 
+export interface CharacterClassSpecialty {
+  id: TechnicalSpecialtyId;
+  label: string;
+  explanation: string;
+  evidenceIds: string[];
+}
+
+export interface CharacterClass {
+  id: CharacterClassId;
+  name: string;
+  summary: string;
+  state: CharacterClassState;
+  mix: Array<{
+    classId: CharacterClassId;
+    share: number;
+    evidenceCount: number;
+    evidenceIds: string[];
+  }>;
+  specialties: CharacterClassSpecialty[];
+  basis: {
+    classifierVersion: string;
+    qualifyingEvidenceCount: number;
+    consideredEvidenceIds: string[];
+    rejectedEvidenceIds: string[];
+    assignments: Array<{
+      evidenceId: string;
+      classId: CharacterClassId;
+      reason: string;
+    }>;
+  };
+  classificationLimits: string[];
+}
+
+export interface ContributorClassPreference {
+  isAiEngineer: boolean;
+  aiToolUsage: AiToolUsage;
+  mageActive: boolean;
+  mageQuiz: MageQuizAnswers | null;
+  magePath: MagePath | null;
+  /** Demo snapshots do not represent a live identity and should not be editable. */
+  editable: boolean;
+}
+
+export interface MasteryDisciplineProgress {
+  id: MasteryDisciplineId;
+  title: string;
+  track: SkillTrack;
+  rankGate: { required: Rank; met: boolean };
+  contributionGate: { required: number; current: number; remaining: number };
+  monthGate: { required: number; current: number; remaining: number };
+  unlockedAt: string | null;
+  evidenceIds: string[];
+}
+
+export interface MasteryProgress {
+  version: string;
+  disciplines: MasteryDisciplineProgress[];
+}
+
+export interface MageQuizAnswers {
+  workflow: MageWorkflowLevel;
+  engineering: MageEngineeringLevel;
+  verification: MageVerificationLevel;
+}
+
+export interface MagePath {
+  id: MagePathId;
+  name: string;
+  summary: string;
+  explanation: string;
+  classifierVersion: string;
+  selfReported: true;
+}
+
 export interface DashboardSnapshot {
   source: DataSource;
   /** All character values, evidence and coverage below use this scope. */
@@ -143,6 +229,9 @@ export interface DashboardSnapshot {
   evidence: ContributionEvidence[];
   achievements: Achievement[];
   quests: Quest[];
+  characterClass: CharacterClass;
+  classPreference: ContributorClassPreference;
+  mastery: MasteryProgress;
   /** Partial imports and provider limitations must remain visible. */
   warnings: string[];
 }
@@ -167,6 +256,23 @@ export const dashboardScopeQuerySchema = z.object({
   : { kind: "repository", repositoryId: repository });
 
 export type DashboardScopeQuery = z.input<typeof dashboardScopeQuerySchema>;
+
+export const profilePreferencePatchSchema = z.object({
+  isAiEngineer: z.boolean(),
+  aiToolUsage: z.enum(["unspecified", "none", "occasional", "frequent", "ai_first"]),
+  mageQuiz: z.object({
+    workflow: z.enum(["prompting", "single_agent", "multi_agent", "agent_systems"]),
+    engineering: z.enum(["prompting", "integrating", "building", "operating"]),
+    verification: z.enum(["manual", "automated_tests", "evaluations", "continuous"]),
+  }).strict().nullable().optional(),
+}).strict();
+export type ProfilePreferencePatch = z.infer<typeof profilePreferencePatchSchema>;
+
+export const profilePreferenceUpdateRequestSchema = z.object({
+  username: z.string().trim().regex(githubLogin, "Enter a valid GitHub username.").toLowerCase(),
+  preference: profilePreferencePatchSchema,
+}).strict();
+export type ProfilePreferenceUpdateRequest = z.infer<typeof profilePreferenceUpdateRequestSchema>;
 
 /** Shared runtime validation; public visibility is checked by the server. */
 export const syncRequestSchema = z.object({

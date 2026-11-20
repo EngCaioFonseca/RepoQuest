@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { downloadShareCard, fetchDashboard, runSync, shareUrl } from "@/lib/client/api";
+import { downloadShareCard, fetchDashboard, runSync, savePreference, shareUrl } from "@/lib/client/api";
 import { formatDate, formatXp } from "@/lib/client/format";
 import { DEFAULT_REPOSITORIES } from "@/lib/contracts";
 import { isIncomplete } from "@/lib/client/coverage";
@@ -9,6 +9,9 @@ import { ApiError, type DashboardView, type SyncSummary } from "@/lib/client/typ
 import { GLOBAL, parseStoredScope, scopeLabel, scopeMatches, scopeQuery, type ScopeSel } from "@/lib/client/scope";
 import { Meter, RankSigil } from "./Primitives";
 import { ScopeSwitch } from "./ScopeSwitch";
+import { ProfilePanel, type PrefDraft } from "./ProfilePanel";
+import { ClassBadge, ClassSection } from "./ClassSection";
+import { MasterySection } from "./MasterySection";
 import { Journal, Quests, Realms, Recent, Tracks } from "./Sections";
 import { SyncPanel, type SyncForm } from "./SyncPanel";
 
@@ -17,7 +20,7 @@ import { SyncPanel, type SyncForm } from "./SyncPanel";
 const DEFAULT_FORM: SyncForm = { username: "engcaiofonseca", repos: [...DEFAULT_REPOSITORIES] };
 const STORE = "repoquest.form.v2"; // v2 drops older saved prefills (empty username, pre-redirect repo slugs)
 const SCOPE_STORE = "repoquest.scope.v1"; // view preference only; never sent to sync
-const NAV = [["tracks", "Tracks"], ["realms", "Realms"], ["quests", "Quests"], ["journal", "Journal"], ["recent", "Evidence"], ["sync", "Sync"]] as const;
+const NAV = [["tracks", "Tracks"], ["realms", "Realms"], ["class", "Class"], ["mastery", "Monarchs"], ["quests", "Quests"], ["journal", "Journal"], ["recent", "Evidence"], ["sync", "Sync"]] as const;
 
 
 export function Dashboard() {
@@ -102,6 +105,15 @@ export function Dashboard() {
     } finally { setSyncing(false); }
   }
 
+  /** Resolves to a warning when the save succeeded but the refetch failed; throws only if the save itself failed. */
+  async function savePrefs(draft: PrefDraft): Promise<string | null> {
+    if (!view) return null;
+    await savePreference(view.profile.username, draft);
+    // Re-read the CURRENT scope so every view reflects the saved title; no GitHub sync happens.
+    const err = await refresh();
+    return err ? `Saved, but the dashboard could not be refreshed (${err}), so titles below may be out of date.` : null;
+  }
+
   async function share() {
     setShareMsg(null);
     try { await downloadShareCard(scope); setShareMsg("Card downloaded."); } catch (e) { setShareMsg(e instanceof Error ? `Download failed: ${e.message}` : "Download failed"); }
@@ -162,7 +174,8 @@ export function Dashboard() {
               <div className="hero-main">
                 <p className="caption">{view.scope.kind === "global" ? "Global character: all tracked repositories." : `Repository character: ${view.scope.repositoryId}, from your contributions there only.`} Local rank {view.rank}, a personal game score, not a verified skill or public ranking.</p>
                 <h1>{view.profile.displayName}</h1>
-                <p className="hero-title">{view.title}</p>
+                <p className="hero-title">{view.title}{view.title !== view.earnedTitle && <span className="chip self">Mage: self-reported</span>}</p>
+                <ClassBadge view={view} />
                 <div className="xp-line"><span className="lvl">Level<b>{view.level}</b></span><span className="small">{formatXp(view.levelXp)} / {formatXp(view.nextLevelXp)} XP this level, {formatXp(view.totalXp)} total{incomplete && view.mode === "live" ? " (provisional)" : ""}</span></div>
                 <Meter value={view.levelXp} max={view.nextLevelXp} label="Level progress" />
                 {view.nextRankRequirement && <p className="small">Next rank: {view.nextRankRequirement}</p>}
@@ -178,11 +191,14 @@ export function Dashboard() {
 
             <div className="grid">
               <div className="col">
+                <ClassSection view={view} />
+                <ProfilePanel view={view} onSave={savePrefs} />
                 <Tracks tracks={view.tracks} />
                 <Quests quests={view.quests} />
                 <Realms repos={view.repositories} />
               </div>
               <div className="col">
+                <MasterySection view={view} incomplete={incomplete} />
                 <Journal items={view.achievements} />
                 <Recent items={view.contributions} incomplete={incomplete} />
               </div>
