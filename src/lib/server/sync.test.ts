@@ -272,6 +272,25 @@ function buildIncrementalPauseFetchMock(): (input: string | URL | Request) => Pr
   };
 }
 
+function buildIssuesOnlyFetchMock(options: { endlessIssues: boolean }): (input: string | URL | Request) => Promise<Response> {
+  return async (input) => {
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url = new URL(raw);
+    const page = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
+    if (url.pathname === "/users/engcaiofonseca") return jsonResponse({ login: "EngCaioFonseca", id: 999, name: "Eng", avatar_url: null });
+    if (url.pathname === "/repos/chaoss/CollectOSS") {
+      return jsonResponse({ full_name: "chaoss/CollectOSS", name: "CollectOSS", owner: { login: "chaoss" }, html_url: "https://github.com/chaoss/CollectOSS", description: "CollectOSS" });
+    }
+    if (url.pathname === "/repos/chaoss/CollectOSS/pulls") return jsonResponse([]);
+    if (url.pathname === "/repos/chaoss/CollectOSS/issues") {
+      if (!options.endlessIssues) return jsonResponse([]);
+      const unrelated = { id: 7000 + page, number: page, title: "Unrelated", html_url: `https://github.com/chaoss/CollectOSS/issues/${page}`, body: "", state: "open", closed_at: null, created_at: "2023-01-01T00:00:00Z", labels: [], user: { login: "engcaiofonseca", id: 1 } };
+      return jsonResponse([unrelated], { headers: { link: `<https://api.github.com/repos/chaoss/CollectOSS/issues?page=${page + 1}>; rel="next"` } });
+    }
+    return jsonResponse({ message: `unexpected ${url.pathname}` }, { status: 500 });
+  };
+}
+
 describe("sync service", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn(buildFetchMock()));
@@ -323,6 +342,29 @@ describe("sync service", () => {
 
     const resumed = await lowBudget.syncFromGitHub(req);
     expect(resumed.dashboard.evidence.length).toBeGreaterThanOrEqual(partial.dashboard.evidence.length);
+  });
+
+  it("marks a repository with no supported evidence as empty and complete-scanned", async () => {
+    vi.stubGlobal("fetch", vi.fn(buildIssuesOnlyFetchMock({ endlessIssues: false })));
+    const { syncFromGitHub } = await loadFresh();
+    const result = await syncFromGitHub({ username: "engcaiofonseca", repositories: ["chaoss/CollectOSS"] });
+    const coverage = result.dashboard.repositories.find((repo: { id: string }) => repo.id === "chaoss/CollectOSS")?.coverage;
+    expect(result.partial).toBe(false);
+    expect(coverage?.backfillStatus).toBe("empty");
+    expect(coverage?.canResume).toBe(false);
+    expect(coverage?.coveredThrough).not.toBeNull();
+  });
+
+  it("pauses on the request budget during the issues phase and stays resumable", async () => {
+    vi.stubGlobal("fetch", vi.fn(buildIssuesOnlyFetchMock({ endlessIssues: true })));
+    const { syncFromGitHub } = await loadFresh({ maxRequests: "11" });
+    const result = await syncFromGitHub({ username: "engcaiofonseca", repositories: ["chaoss/CollectOSS"] });
+    const coverage = result.dashboard.repositories.find((repo: { id: string }) => repo.id === "chaoss/CollectOSS")?.coverage;
+    expect(result.partial).toBe(true);
+    expect(coverage?.backfillStatus).toBe("partial");
+    expect(coverage?.failureReason).toBe("api_limit");
+    expect(coverage?.canResume).toBe(true);
+    expect(result.warnings.join("\n")).toContain("paused after 11 GitHub requests");
   });
 
   it("returns partial warnings with retryAt on GitHub rate limits", async () => {
