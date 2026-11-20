@@ -2,7 +2,7 @@ import "server-only";
 import type { ContributorClassPreference, ProfilePreferencePatch } from "@/lib/contracts";
 import { withMagePreference } from "@/lib/domain/classes";
 import { KnownApiError } from "./api-error";
-import { readClassPreference, readProfile, readSyncState, updateClassPreference } from "./repository";
+import { readProfile, readSyncState, updateClassPreference } from "./repository";
 
 export class ProfilePreferenceError extends KnownApiError {}
 
