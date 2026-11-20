@@ -277,6 +277,24 @@ export function updateCoverage(coverage: RepositoryCoverage, checkpoint: Coverag
   );
 }
 
+/** Coverage for a contributor/repository that has not been imported yet. */
+export function emptyCoverage(username: string, repositoryId: string, limitations: string[] = []): RepositoryCoverage {
+  return {
+    username,
+    repositoryId,
+    requestedScope: "all_accessible_history",
+    supportedKinds: ["pull_request", "review", "issue"],
+    backfillStatus: "not_started",
+    oldestEvidenceAt: null,
+    newestEvidenceAt: null,
+    lastAttemptAt: null,
+    lastSuccessfulSyncAt: null,
+    coveredThrough: null,
+    canResume: false,
+    limitations,
+  };
+}
+
 type CoverageRow = {
   username: string;
   repository_id: string;

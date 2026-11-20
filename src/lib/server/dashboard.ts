@@ -4,27 +4,10 @@ import { defaultClassPreference } from "@/lib/domain/classes";
 import { buildDemoDashboard } from "@/lib/domain/demo";
 import { deriveProgression } from "@/lib/domain/progression";
 import { restoreFromCloudOnce, storageStatus } from "./cloud-save";
-import { readClassPreference, readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
+import { emptyCoverage, readClassPreference, readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
 import { resolveTrackedScope } from "./scope";
 
 const DEFAULT_REPOSITORIES = ["chaoss/8Knot", "chaoss/CollectOSS"] as const;
-
-function defaultCoverage(username: string, repositoryId: string): RepositoryCoverage {
-  return {
-    username,
-    repositoryId,
-    requestedScope: "all_accessible_history",
-    supportedKinds: ["pull_request", "review", "issue"],
-    backfillStatus: "not_started",
-    oldestEvidenceAt: null,
-    newestEvidenceAt: null,
-    lastAttemptAt: null,
-    lastSuccessfulSyncAt: null,
-    coveredThrough: null,
-    canResume: false,
-    limitations: [],
-  };
-}
 
 function mapWarnings(coverages: RepositoryCoverage[]): string[] {
   const warnings: string[] = [];
@@ -107,7 +90,7 @@ export async function buildDashboardSnapshot(forUsername?: string | null, reques
       description: meta?.description ?? "",
       xp: 0,
       evidenceCount: 0,
-      coverage: coverageMap.get(repositoryId) ?? defaultCoverage(username, repositoryId),
+      coverage: coverageMap.get(repositoryId) ?? emptyCoverage(username, repositoryId),
     };
   });
 

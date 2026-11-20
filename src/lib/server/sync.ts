@@ -15,6 +15,7 @@ import {
   listPullReviewPage,
 } from "./github";
 import {
+  emptyCoverage,
   persistEvidenceAndCoverage,
   readCoverage,
   readSyncState,
@@ -71,20 +72,7 @@ function canonicalRepoId(fullName: string): string {
 }
 
 function baseCoverage(username: string, repositoryId: string): RepositoryCoverage {
-  return {
-    username,
-    repositoryId,
-    requestedScope: "all_accessible_history",
-    supportedKinds: ["pull_request", "review", "issue"],
-    backfillStatus: "not_started",
-    oldestEvidenceAt: null,
-    newestEvidenceAt: null,
-    lastAttemptAt: null,
-    lastSuccessfulSyncAt: null,
-    coveredThrough: null,
-    canResume: false,
-    limitations: [...BASE_LIMITATIONS],
-  };
+  return emptyCoverage(username, repositoryId, [...BASE_LIMITATIONS]);
 }
 
 function evidenceId(kind: "pr" | "review" | "issue", repositoryId: string, numericId: number): string {
