@@ -32,6 +32,9 @@ runtime, never Edge. There is no ORM or separate worker service in this release.
   and SVG serialization. Server modules must not be imported by client code.
 - `src/app/api/`: thin HTTP adapters validating input, invoking the server
   services, and translating known failures to safe responses.
+  Route shape: guard (`request-guard.ts`) → `parseJsonBody`/`parseScopeFromRequest`
+  → one server-service call → map `KnownApiError` subclasses (`ScopeError`,
+  `ProfilePreferenceError`) and other known failures with `errorJson`.
 
 ## HTTP contract
 

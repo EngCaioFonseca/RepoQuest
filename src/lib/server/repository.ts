@@ -135,32 +135,29 @@ export function resolveCanonicalRepositoryId(username: string, repositoryIdCandi
   return fromRepos?.id ?? null;
 }
 
-export function insertEvidence(username: string, evidence: ContributionEvidence[]): { imported: number; unchanged: number } {
-  const insertOrUpdate = database().prepare(`
-    INSERT INTO evidence (
-      id, username, actor_login, actor_id, repository_id, kind, track, title, url, occurred_at, state, reason, imported_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      username = excluded.username,
-      actor_login = excluded.actor_login,
-      actor_id = excluded.actor_id,
-      repository_id = excluded.repository_id,
-      kind = excluded.kind,
-      track = excluded.track,
-      title = excluded.title,
-      url = excluded.url,
-      occurred_at = excluded.occurred_at,
-      state = excluded.state,
-      reason = excluded.reason
-  `);
-  return runEvidenceInsert(username, evidence, insertOrUpdate);
-}
+const UPSERT_EVIDENCE_SQL = `
+  INSERT INTO evidence (
+    id, username, actor_login, actor_id, repository_id, kind, track, title, url, occurred_at, state, reason, imported_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(id) DO UPDATE SET
+    username = excluded.username,
+    actor_login = excluded.actor_login,
+    actor_id = excluded.actor_id,
+    repository_id = excluded.repository_id,
+    kind = excluded.kind,
+    track = excluded.track,
+    title = excluded.title,
+    url = excluded.url,
+    occurred_at = excluded.occurred_at,
+    state = excluded.state,
+    reason = excluded.reason
+`;
 
 function runEvidenceInsert(
   username: string,
   evidence: ContributionEvidence[],
-  upsert: ReturnType<ReturnType<typeof database>["prepare"]>,
 ): { imported: number; unchanged: number } {
+  const upsert = database().prepare(UPSERT_EVIDENCE_SQL);
   const exists = database().prepare("SELECT id FROM evidence WHERE id = ? LIMIT 1");
   let imported = 0;
   let unchanged = 0;
@@ -194,27 +191,10 @@ export function persistEvidenceAndCoverage(
   checkpoint: Record<string, unknown> | null,
 ): { imported: number; unchanged: number } {
   const db = database();
-  const evidenceStatement = db.prepare(`
-    INSERT INTO evidence (
-      id, username, actor_login, actor_id, repository_id, kind, track, title, url, occurred_at, state, reason, imported_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      username = excluded.username,
-      actor_login = excluded.actor_login,
-      actor_id = excluded.actor_id,
-      repository_id = excluded.repository_id,
-      kind = excluded.kind,
-      track = excluded.track,
-      title = excluded.title,
-      url = excluded.url,
-      occurred_at = excluded.occurred_at,
-      state = excluded.state,
-      reason = excluded.reason
-  `);
 
   db.exec("BEGIN IMMEDIATE");
   try {
-    const counts = runEvidenceInsert(username, evidence, evidenceStatement);
+    const counts = runEvidenceInsert(username, evidence);
     updateCoverage(coverage, checkpoint);
     db.exec("COMMIT");
     return counts;
@@ -297,70 +277,44 @@ export function updateCoverage(coverage: RepositoryCoverage, checkpoint: Coverag
   );
 }
 
-export function readCoverage(username: string, repositoryId: string): { coverage: RepositoryCoverage; checkpoint: CoverageCheckpoint } | null {
-  const row = database().prepare(`
-    SELECT *
-    FROM coverage
-    WHERE username = ? AND repository_id = ?
-  `).get(username, repositoryId) as
-    | {
-      username: string;
-      repository_id: string;
-      requested_scope: RepositoryCoverage["requestedScope"];
-      supported_kinds_json: string;
-      backfill_status: RepositoryCoverage["backfillStatus"];
-      oldest_evidence_at: string | null;
-      newest_evidence_at: string | null;
-      last_attempt_at: string | null;
-      last_successful_sync_at: string | null;
-      covered_through: string | null;
-      can_resume: number;
-      limitations_json: string;
-      failure_reason: RepositoryCoverage["failureReason"] | null;
-      retry_at: string | null;
-      checkpoint_json: string | null;
-    }
-    | undefined;
-  if (!row) return null;
+/** Coverage for a contributor/repository that has not been imported yet. */
+export function emptyCoverage(username: string, repositoryId: string, limitations: string[] = []): RepositoryCoverage {
   return {
-    coverage: {
-      username: row.username,
-      repositoryId: row.repository_id,
-      requestedScope: row.requested_scope,
-      supportedKinds: parseJson(row.supported_kinds_json, []),
-      backfillStatus: row.backfill_status,
-      oldestEvidenceAt: row.oldest_evidence_at,
-      newestEvidenceAt: row.newest_evidence_at,
-      lastAttemptAt: row.last_attempt_at,
-      lastSuccessfulSyncAt: row.last_successful_sync_at,
-      coveredThrough: row.covered_through,
-      canResume: row.can_resume === 1,
-      limitations: parseJson(row.limitations_json, []),
-      failureReason: row.failure_reason ?? undefined,
-      retryAt: row.retry_at ?? undefined,
-    },
-    checkpoint: parseJson<CoverageCheckpoint>(row.checkpoint_json, null),
+    username,
+    repositoryId,
+    requestedScope: "all_accessible_history",
+    supportedKinds: ["pull_request", "review", "issue"],
+    backfillStatus: "not_started",
+    oldestEvidenceAt: null,
+    newestEvidenceAt: null,
+    lastAttemptAt: null,
+    lastSuccessfulSyncAt: null,
+    coveredThrough: null,
+    canResume: false,
+    limitations,
   };
 }
 
-export function readCoverageForUser(username: string): RepositoryCoverage[] {
-  const rows = database().prepare("SELECT * FROM coverage WHERE username = ? ORDER BY repository_id ASC").all(username) as Array<{
-    username: string;
-    repository_id: string;
-    requested_scope: RepositoryCoverage["requestedScope"];
-    supported_kinds_json: string;
-    backfill_status: RepositoryCoverage["backfillStatus"];
-    oldest_evidence_at: string | null;
-    newest_evidence_at: string | null;
-    last_attempt_at: string | null;
-    last_successful_sync_at: string | null;
-    covered_through: string | null;
-    can_resume: number;
-    limitations_json: string;
-    failure_reason: RepositoryCoverage["failureReason"] | null;
-    retry_at: string | null;
-  }>;
-  return rows.map((row) => ({
+type CoverageRow = {
+  username: string;
+  repository_id: string;
+  requested_scope: RepositoryCoverage["requestedScope"];
+  supported_kinds_json: string;
+  backfill_status: RepositoryCoverage["backfillStatus"];
+  oldest_evidence_at: string | null;
+  newest_evidence_at: string | null;
+  last_attempt_at: string | null;
+  last_successful_sync_at: string | null;
+  covered_through: string | null;
+  can_resume: number;
+  limitations_json: string;
+  failure_reason: RepositoryCoverage["failureReason"] | null;
+  retry_at: string | null;
+  checkpoint_json?: string | null;
+};
+
+function toCoverage(row: CoverageRow): RepositoryCoverage {
+  return {
     username: row.username,
     repositoryId: row.repository_id,
     requestedScope: row.requested_scope,
@@ -375,7 +329,22 @@ export function readCoverageForUser(username: string): RepositoryCoverage[] {
     limitations: parseJson(row.limitations_json, []),
     failureReason: row.failure_reason ?? undefined,
     retryAt: row.retry_at ?? undefined,
-  }));
+  };
+}
+
+export function readCoverage(username: string, repositoryId: string): { coverage: RepositoryCoverage; checkpoint: CoverageCheckpoint } | null {
+  const row = database().prepare(`
+    SELECT *
+    FROM coverage
+    WHERE username = ? AND repository_id = ?
+  `).get(username, repositoryId) as CoverageRow | undefined;
+  if (!row) return null;
+  return { coverage: toCoverage(row), checkpoint: parseJson<CoverageCheckpoint>(row.checkpoint_json, null) };
+}
+
+export function readCoverageForUser(username: string): RepositoryCoverage[] {
+  const rows = database().prepare("SELECT * FROM coverage WHERE username = ? ORDER BY repository_id ASC").all(username) as CoverageRow[];
+  return rows.map(toCoverage);
 }
 
 export function upsertSyncState(

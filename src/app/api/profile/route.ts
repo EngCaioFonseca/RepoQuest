@@ -1,5 +1,5 @@
 import { profilePreferenceUpdateRequestSchema } from "@/lib/contracts";
-import { errorJson } from "@/lib/server/api-error";
+import { errorJson, parseJsonBody } from "@/lib/server/api-error";
 import { saveToCloud } from "@/lib/server/cloud-save";
 import { updateCurrentClassPreference, ProfilePreferenceError } from "@/lib/server/profile";
 import { rejectIfNonJson, rejectIfUntrustedLocalRequest } from "@/lib/server/request-guard";
@@ -12,21 +12,11 @@ export async function PATCH(request: Request): Promise<Response> {
   const nonJson = rejectIfNonJson(request, "Profile update");
   if (nonJson) return nonJson;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errorJson("invalid_json", "Request body must be valid JSON.", 400);
-  }
-
-  const parsed = profilePreferenceUpdateRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    const fields = Object.fromEntries(parsed.error.issues.map((issue) => [issue.path.join("."), issue.message]));
-    return errorJson("invalid_request", "Invalid profile preference payload.", 400, { fields });
-  }
+  const input = await parseJsonBody(request, profilePreferenceUpdateRequestSchema, "Invalid profile preference payload.");
+  if ("response" in input) return input.response;
 
   try {
-    const updated = updateCurrentClassPreference(parsed.data.username, parsed.data.preference);
+    const updated = updateCurrentClassPreference(input.data.username, input.data.preference);
     await saveToCloud(updated.username);
     return Response.json(updated);
   } catch (error) {

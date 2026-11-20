@@ -15,6 +15,7 @@ import {
   listPullReviewPage,
 } from "./github";
 import {
+  emptyCoverage,
   persistEvidenceAndCoverage,
   readCoverage,
   readSyncState,
@@ -71,20 +72,7 @@ function canonicalRepoId(fullName: string): string {
 }
 
 function baseCoverage(username: string, repositoryId: string): RepositoryCoverage {
-  return {
-    username,
-    repositoryId,
-    requestedScope: "all_accessible_history",
-    supportedKinds: ["pull_request", "review", "issue"],
-    backfillStatus: "not_started",
-    oldestEvidenceAt: null,
-    newestEvidenceAt: null,
-    lastAttemptAt: null,
-    lastSuccessfulSyncAt: null,
-    coveredThrough: null,
-    canResume: false,
-    limitations: [...BASE_LIMITATIONS],
-  };
+  return emptyCoverage(username, repositoryId, [...BASE_LIMITATIONS]);
 }
 
 function evidenceId(kind: "pr" | "review" | "issue", repositoryId: string, numericId: number): string {
@@ -229,16 +217,28 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
   const requestLimit = Number.isFinite(MAX_REQUESTS_PER_SYNC) && MAX_REQUESTS_PER_SYNC > 10 ? MAX_REQUESTS_PER_SYNC : 220;
 
   const emitted: ContributionEvidence[] = [];
-  const canContinue = (): boolean => requests < requestLimit;
-  const shouldStop = (): boolean => !canContinue();
+  const requestLimitReached = (): boolean => requests >= requestLimit;
+  const resumeCheckpoint = (): CoverageCheckpoint => ({
+    ...initialCheckpoint(incrementalMode ? "incremental" : "backfill", incrementalMode ? (start.watermark ?? null) : null),
+    phase,
+    pullPage,
+    pullIndex,
+    reviewPage,
+    issuePage,
+  });
+  // A function call keeps TypeScript from narrowing the status away after pauseForRequestLimit mutates it.
+  const isPaused = (): boolean => coverage.backfillStatus === "partial";
+  const pauseForRequestLimit = (): void => {
+    coverage.backfillStatus = "partial";
+    coverage.failureReason = "api_limit";
+    coverage.canResume = true;
+    warnings.push(`Backfill for ${repositoryId} paused after ${requestLimit} GitHub requests; rerun sync to continue.`);
+  };
 
   try {
     while (phase === "pulls") {
-      if (!canContinue()) {
-        coverage.backfillStatus = "partial";
-        coverage.failureReason = "api_limit";
-        coverage.canResume = true;
-        warnings.push(`Backfill for ${repositoryId} paused after ${requestLimit} GitHub requests; rerun sync to continue.`);
+      if (requestLimitReached()) {
+        pauseForRequestLimit();
         break;
       }
       const pullPageResult = incrementalMode
@@ -280,11 +280,8 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
         let localReviewPage = pullPage === resumePullPage && index === resumePullIndex ? resumeReviewPage : 1;
         while (pull.number > 0) {
           reviewPage = localReviewPage;
-          if (shouldStop()) {
-            coverage.backfillStatus = "partial";
-            coverage.failureReason = "api_limit";
-            coverage.canResume = true;
-            warnings.push(`Backfill for ${repositoryId} paused after ${requestLimit} GitHub requests; rerun sync to continue.`);
+          if (requestLimitReached()) {
+            pauseForRequestLimit();
             break;
           }
           if (incrementalSince !== null && Date.parse(pull.updated_at) <= incrementalSince) break;
@@ -313,10 +310,10 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
           if (reviews.length < 100 && reviewResult.nextPage === null) break;
           localReviewPage = reviewResult.nextPage ?? localReviewPage + 1;
         }
-        if (coverage.backfillStatus === "partial") break;
+        if (isPaused()) break;
         reviewPage = 1;
       }
-      if (coverage.backfillStatus === "partial") break;
+      if (isPaused()) break;
       pullIndex = 0;
       if (pullPageResult.nextPage === null) {
         phase = "issues";
@@ -325,14 +322,11 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
       pullPage = pullPageResult.nextPage;
     }
 
-    if (coverage.backfillStatus !== "partial" && phase === "issues") {
+    if (!isPaused() && phase === "issues") {
       while (true) {
         phase = "issues";
-        if (shouldStop()) {
-          coverage.backfillStatus = "partial";
-          coverage.failureReason = "api_limit";
-          coverage.canResume = true;
-          warnings.push(`Backfill for ${repositoryId} paused after ${requestLimit} GitHub requests; rerun sync to continue.`);
+        if (requestLimitReached()) {
+          pauseForRequestLimit();
           break;
         }
         const issuePageResult = incrementalMode
@@ -373,18 +367,7 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
       coverage.retryAt = error.retryAt;
       coverage.canResume = true;
       warnings.push(`${repositoryId}: ${error.message}`);
-      const failureCheckpoint: CoverageCheckpoint = {
-        version: CHECKPOINT_VERSION,
-        mode: incrementalMode ? "incremental" : "backfill",
-        pullOrder: incrementalMode ? INCREMENTAL_ORDER : PULL_ORDER,
-        issueOrder: incrementalMode ? INCREMENTAL_ORDER : ISSUE_ORDER,
-        watermark: incrementalMode ? (start.watermark ?? null) : null,
-        phase,
-        pullPage,
-        pullIndex,
-        reviewPage,
-        issuePage,
-      };
+      const failureCheckpoint = resumeCheckpoint();
       const counts = persistEvidenceAndCoverage(username, emitted, coverage, failureCheckpoint);
       return { imported: counts.imported, unchanged: counts.unchanged, coverage, checkpoint: failureCheckpoint, warnings };
     }
@@ -392,34 +375,13 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
   }
 
   let finalCheckpoint: CoverageCheckpoint | null = null;
-  const hasCheckpoint = coverage.backfillStatus === "partial";
-  if (coverage.backfillStatus === "partial") {
+  const hasCheckpoint = isPaused();
+  if (hasCheckpoint) {
     coverage.failureReason ??= "interrupted";
     coverage.canResume = true;
-    finalCheckpoint = {
-      version: CHECKPOINT_VERSION,
-      mode: incrementalMode ? "incremental" : "backfill",
-      pullOrder: incrementalMode ? INCREMENTAL_ORDER : PULL_ORDER,
-      issueOrder: incrementalMode ? INCREMENTAL_ORDER : ISSUE_ORDER,
-      watermark: incrementalMode ? (start.watermark ?? null) : null,
-      phase,
-      pullPage,
-      pullIndex,
-      reviewPage,
-      issuePage,
-    };
-  } else if (!coverage.oldestEvidenceAt) {
-    coverage.backfillStatus = "empty";
-    coverage.coveredThrough = now;
-    coverage.lastSuccessfulSyncAt = now;
-    coverage.canResume = false;
-  } else if (!incrementalMode) {
-    coverage.backfillStatus = "complete";
-    coverage.coveredThrough = now;
-    coverage.lastSuccessfulSyncAt = now;
-    coverage.canResume = false;
+    finalCheckpoint = resumeCheckpoint();
   } else {
-    coverage.backfillStatus = "complete";
+    coverage.backfillStatus = coverage.oldestEvidenceAt ? "complete" : "empty";
     coverage.coveredThrough = now;
     coverage.lastSuccessfulSyncAt = now;
     coverage.canResume = false;
