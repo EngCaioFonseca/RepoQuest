@@ -1,15 +1,10 @@
 import { existsSync, mkdtempSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import postgres from "postgres";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-// The Postgres suite runs against a real, disposable database, for example:
-//   REPOQUEST_TEST_CLOUD_URL=postgres://localhost:5432/repoquest_test npm test
-// It drops and recreates the `repoquest` schema in that database.
-const TEST_CLOUD_URL = process.env.REPOQUEST_TEST_CLOUD_URL?.trim() ?? "";
 const TOKEN = "test-token-never-exported";
 const USERNAME = "engcaiofonseca";
 const REPO = "chaoss/CollectOSS";
@@ -121,7 +116,6 @@ async function freshInstall(options: { env?: Record<string, string | undefined>;
   process.env.DATABASE_PATH = options.databasePath ?? join(mkdtempSync(join(tmpdir(), "repoquest-cloud-test-")), "repoquest.db");
   delete process.env.REPOQUEST_DB_PATH;
   delete process.env.CLOUD_SAVE;
-  delete process.env.CLOUD_DATABASE_URL;
   process.env.GITHUB_TOKEN = TOKEN;
   for (const [key, value] of Object.entries(options.env ?? {})) {
     if (value === undefined) delete process.env[key];
@@ -141,16 +135,11 @@ function pullSorts(calls: Array<{ url: URL }>): string[] {
   return calls.filter(({ url }) => url.pathname === `/repos/${REPO}/pulls`).map(({ url }) => url.searchParams.get("sort") ?? "");
 }
 
-function spyCalls(spy: ReturnType<typeof vi.fn>): Array<{ url: URL }> {
-  return spy.mock.calls.map(([input]) => ({ url: new URL(requestUrl(input as string)) }));
-}
-
 afterEach(async () => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   while (opened.length) await opened.pop()?.cloud.closeCloudSave();
   delete process.env.CLOUD_SAVE;
-  delete process.env.CLOUD_DATABASE_URL;
 });
 
 describe("storage modes without cloud save", () => {
@@ -179,7 +168,7 @@ describe("storage modes without cloud save", () => {
     const { dashboard } = await freshInstall({ env: { CLOUD_SAVE: "dropbox" } });
     const snapshot = await dashboard.buildDashboardSnapshot();
     expect(snapshot.storage?.cloudSave).toBe("error");
-    expect(snapshot.storage?.cloudProblem).toMatch(/gist, postgres or off/);
+    expect(snapshot.storage?.cloudProblem).toMatch(/gist or off/);
   });
 });
 
@@ -293,71 +282,5 @@ describe("cloud save to a GitHub Gist", () => {
     const snapshot = await reopened.dashboard.buildDashboardSnapshot();
     expect(snapshot.profile.username).toBe("someone-else");
     expect(snapshot.storage?.restoredFromCloud).toBe(false);
-  });
-});
-
-describe("cloud save to Postgres", () => {
-  it("keeps a sync successful when the database is unreachable", async () => {
-    vi.stubGlobal("fetch", vi.fn(githubMock));
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { sync } = await freshInstall({ env: { CLOUD_DATABASE_URL: "postgres://repoquest:secret-password@127.0.0.1:1/none?connect_timeout=1" } });
-    const out = await sync.syncFromGitHub({ username: USERNAME, repositories: [REPO] });
-    expect(out.dashboard.evidence.length).toBeGreaterThan(0);
-    expect(out.warnings.join("\n")).toMatch(/Cloud save failed/);
-    expect(out.dashboard.storage).toMatchObject({ cloudSave: "error", cloudBackend: "postgres" });
-    expect(JSON.stringify(out)).not.toContain("secret-password");
-  });
-
-  describe.skipIf(!TEST_CLOUD_URL)("against a real database", () => {
-    beforeEach(async () => {
-      const admin = postgres(TEST_CLOUD_URL, { max: 1, onnotice: () => {} });
-      await admin.unsafe("DROP SCHEMA IF EXISTS repoquest CASCADE");
-      await admin.end();
-    });
-
-    it("restores a fresh install so the next sync is incremental", async () => {
-      vi.stubGlobal("fetch", vi.fn(githubMock));
-      const first = await freshInstall({ env: { CLOUD_DATABASE_URL: TEST_CLOUD_URL } });
-      const original = await first.sync.syncFromGitHub({ username: USERNAME, repositories: [REPO] });
-      expect(original.warnings.join("\n")).not.toMatch(/Cloud save failed/);
-      expect(original.dashboard.storage).toMatchObject({ cloudSave: "ready", cloudBackend: "postgres" });
-      first.repository.updateClassPreference(USERNAME, { isAiEngineer: true, aiToolUsage: "frequent" });
-      expect(await first.cloud.saveToCloud(USERNAME)).toBe(true);
-
-      const second = await freshInstall({ env: { CLOUD_SAVE: "postgres", CLOUD_DATABASE_URL: TEST_CLOUD_URL } });
-      const restored = await second.dashboard.buildDashboardSnapshot();
-      expect(restored.source).toBe("live");
-      expect(restored.progression.totalXp).toBe(original.dashboard.progression.totalXp);
-      expect(restored.evidence.map((item) => item.id)).toEqual(original.dashboard.evidence.map((item) => item.id));
-      expect(restored.trackedRepositories).toEqual([REPO]);
-      expect(restored.storage?.restoredFromCloud).toBe(true);
-      expect(second.repository.readClassPreference(USERNAME)).toMatchObject({ isAiEngineer: true, aiToolUsage: "frequent" });
-
-      const fetchSpy = vi.fn(githubMock);
-      vi.stubGlobal("fetch", fetchSpy);
-      const resumed = await second.sync.syncFromGitHub({ username: USERNAME, repositories: [REPO] });
-      const sorts = pullSorts(spyCalls(fetchSpy));
-      expect(sorts.length).toBeGreaterThan(0);
-      expect(sorts.every((sort) => sort === "updated")).toBe(true);
-      expect(resumed.imported).toBe(0);
-    });
-
-    it("does not move coverage backwards when an older install saves again", async () => {
-      vi.stubGlobal("fetch", vi.fn(githubMock));
-      const first = await freshInstall({ env: { CLOUD_DATABASE_URL: TEST_CLOUD_URL } });
-      await first.sync.syncFromGitHub({ username: USERNAME, repositories: [REPO] });
-      const second = await freshInstall({ env: { CLOUD_DATABASE_URL: TEST_CLOUD_URL } });
-      await second.dashboard.buildDashboardSnapshot();
-      await second.sync.syncFromGitHub({ username: USERNAME, repositories: [REPO] });
-      const newer = second.repository.readCoverage(USERNAME, REPO)?.coverage.coveredThrough;
-
-      expect(await first.cloud.saveToCloud(USERNAME)).toBe(true);
-      const admin = postgres(TEST_CLOUD_URL, { max: 1, onnotice: () => {} });
-      const [row] = await admin`SELECT covered_through FROM repoquest.coverage WHERE username = ${USERNAME} AND repository_id = ${REPO}`;
-      const [count] = await admin`SELECT count(*)::int AS n FROM repoquest.evidence WHERE username = ${USERNAME}`;
-      await admin.end();
-      expect(row.covered_through).toBe(newer);
-      expect(count.n).toBe(1);
-    });
   });
 });

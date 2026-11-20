@@ -169,9 +169,8 @@ an in-memory database that is discarded when the process exits.
 
 `src/lib/server/cloud-save.ts` optionally keeps a copy of player state outside
 the machine. SQLite remains the working store and every domain/server module
-keeps its synchronous access; a cloud backend is only a save slot, not a second
-source of truth. `CLOUD_SAVE` selects the backend (`gist`, `postgres`, or `off`;
-`CLOUD_DATABASE_URL` alone implies `postgres`).
+keeps its synchronous access; the cloud copy is only a save slot, not a second
+source of truth. `CLOUD_SAVE=gist` enables it; unset or `off` disables it.
 
 The portable unit is a Zod-validated `PlayerSave` for one player: `profiles`
 plus that player's `sync_state`, and their `repositories`, `coverage` (including
@@ -184,9 +183,6 @@ SQLite so a round trip is exact. Derived XP is never stored.
   saves are last-write-wins and repaired by the next save. Contents over the
   API's 1 MB truncation are read from `gist.githubusercontent.com` without the
   token.
-- `cloud-postgres.ts` stores the same rows in a `repoquest` schema of a
-  bring-your-own database, upserting in one transaction with the same merge
-  rules enforced in SQL.
 - Merge rules: evidence and repositories are a union by stable ID, and a
   repository's coverage is only replaced by one whose `last_attempt_at` is not
   older, so another install's progress never moves backwards. The stored sync
@@ -204,7 +200,7 @@ SQLite so a round trip is exact. Derived XP is never stored.
   warning to that sync response.
 
 There is still no hosted service or authentication boundary: each player owns
-their Gist or database and its credentials.
+their Gist and token.
 
 ## Progression and product meaning
 

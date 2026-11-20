@@ -4,18 +4,15 @@ import type { StorageStatus } from "@/lib/contracts";
 import { database, isMemoryDatabase } from "./db";
 
 /**
- * Optional "cloud save" for player state. SQLite stays the working store; a
- * backend only keeps a copy of one player's save:
- *
- * - `gist` (CLOUD_SAVE=gist): a secret GitHub Gist owned by the GITHUB_TOKEN
- *   user. No extra service or secret; the token needs Gist write permission.
- * - `postgres` (CLOUD_SAVE=postgres, or CLOUD_DATABASE_URL alone): a
- *   bring-your-own Postgres database such as a free Neon project.
+ * Optional "cloud save" for player state (CLOUD_SAVE=gist). SQLite stays the
+ * working store; a secret GitHub Gist owned by the GITHUB_TOKEN user keeps a
+ * copy of each player's save. No extra service or secret is needed; the token
+ * needs Gist write permission.
  *
  * restore: when the local database has no player yet, the most recent save is
  * copied in, including coverage checkpoints, so the next sync is incremental
  * instead of a full GitHub backfill. save: after a sync or profile change, the
- * player's save is merged into the backend.
+ * player's save is merged into the Gist.
  *
  * Source evidence is saved rather than derived XP, so scoring changes still
  * apply after a restore. Cloud failures never fail a sync or the dashboard.
@@ -96,7 +93,7 @@ export const COVERAGE_COLUMNS = Object.keys(coverageSchema.shape) as Array<keyof
 export const EVIDENCE_COLUMNS = Object.keys(evidenceSchema.shape) as Array<keyof EvidenceRow>;
 export const REPOSITORY_COLUMNS = Object.keys(repositorySchema.shape) as Array<keyof RepositoryRow>;
 
-export type CloudBackendKind = "gist" | "postgres";
+export type CloudBackendKind = "gist";
 
 export interface CloudBackend {
   kind: CloudBackendKind;
@@ -256,16 +253,12 @@ type BackendConfig = { kind: CloudBackendKind | null; problem: string | null };
 
 function backendConfig(): BackendConfig {
   const mode = process.env.CLOUD_SAVE?.trim().toLowerCase() ?? "";
-  const hasUrl = Boolean(process.env.CLOUD_DATABASE_URL?.trim());
   if (mode === "off") return { kind: null, problem: null };
   if (mode === "gist") {
     return { kind: "gist", problem: process.env.GITHUB_TOKEN?.trim() ? null : "Gist cloud save needs GITHUB_TOKEN to be configured." };
   }
-  if (mode === "postgres" || (mode === "" && hasUrl)) {
-    return { kind: "postgres", problem: hasUrl ? null : "Postgres cloud save needs CLOUD_DATABASE_URL to be configured." };
-  }
   if (mode === "") return { kind: null, problem: null };
-  return { kind: null, problem: "CLOUD_SAVE must be gist, postgres or off." };
+  return { kind: null, problem: "CLOUD_SAVE must be gist or off." };
 }
 
 let backend: CloudBackend | null = null;
@@ -278,10 +271,7 @@ let lastProblem: string | null = null;
 
 async function activeBackend(kind: CloudBackendKind): Promise<CloudBackend> {
   if (backend?.kind === kind) return backend;
-  // Loaded lazily so the Postgres driver is only initialized when it is used.
-  backend = kind === "gist"
-    ? (await import("./cloud-gist")).createGistBackend()
-    : (await import("./cloud-postgres")).createPostgresBackend();
+  backend = (await import("./cloud-gist")).createGistBackend();
   return backend;
 }
 

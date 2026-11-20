@@ -11,7 +11,7 @@ function storageNote(storage: StorageStatus | null | undefined): string | null {
     ? "Progress is kept in memory only and is discarded when the server stops."
     : "Progress is saved in the local database on this machine.";
   if (storage.cloudSave === "off") return local;
-  const where = storage.cloudBackend === "gist" ? "a secret GitHub Gist" : "your Postgres database";
+  const where = "a secret GitHub Gist";
   if (storage.cloudSave === "error") return `${local} Cloud save to ${where} is not working: ${storage.cloudProblem ?? "the last save or restore failed."} It is retried on the next sync.`;
   return `${local} Cloud save to ${where} is on${storage.restoredFromCloud ? " (restored from your cloud save)" : ""}.`;
 }

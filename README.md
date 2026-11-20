@@ -134,10 +134,8 @@ activity streak. Repeated syncs must not award the same contribution twice.
   `./data/repoquest.db`. The containing directory must be writable.
   `:memory:` keeps everything in memory: you can sync and look once, and
   nothing is written to disk.
-- `CLOUD_SAVE`: optional cloud save, `gist` or `postgres` (default off). See
+- `CLOUD_SAVE`: set to `gist` for cloud save (default off). See
   [Cloud save](#cloud-save).
-- `CLOUD_DATABASE_URL`: Postgres connection string for `CLOUD_SAVE=postgres`.
-  Setting it without `CLOUD_SAVE` also selects Postgres.
 
 **Database path compatibility is implemented.** The server uses the first
 nonblank value of `DATABASE_PATH`, then the legacy `REPOQUEST_DB_PATH` variable,
@@ -147,36 +145,6 @@ Relative paths resolve from the server's working directory. Choosing another
 path does not move or migrate existing evidence.
 Local `.repoquest/` contents and `.sqlite`, `.sqlite-wal`, and `.sqlite-shm`
 files are excluded from Git and Docker build contexts.
-
-### Cloud save (bring your own Postgres)
-
-Local progress lives in the SQLite file, and later syncs only fetch new work.
-A new clone, another machine, or `docker compose down --volumes` starts with an
-empty file and would import the whole history again. Cloud save avoids that by
-copying your player state to a Postgres database that you own:
-
-1. Create a free project at [Neon](https://neon.tech) (any Postgres 14+ works)
-   and copy its connection string, including `?sslmode=require`.
-2. Set `CLOUD_DATABASE_URL` in `.env.local` (or `.env` for Docker Compose) and
-   restart the server.
-
-On first use RepoQuest creates a `repoquest` schema. After every sync or
-profile change it saves that player's profile, tracked repositories, evidence
-and import checkpoints. When the local database has no player yet, it restores
-the most recent save before the first dashboard load or sync, so the next sync
-continues incrementally instead of starting a full backfill. A local player is
-never overwritten by the cloud copy.
-
-Saves from several installs merge: evidence is combined by its stable GitHub
-ID, and a repository's import progress never moves backwards. XP is not stored;
-it is recomputed from evidence, so scoring updates still apply after a restore.
-If the database is unreachable, sync still succeeds locally and reports that
-the cloud save failed. The connection string stays on the server like
-`GITHUB_TOKEN`. Anyone holding it can read and change the save, so do not share
-it or commit it.
-
-Combine `DATABASE_PATH=:memory:` with `CLOUD_DATABASE_URL` to keep nothing on
-the machine and restore from the cloud on every start.
 
 ### Cloud save
 
@@ -196,8 +164,7 @@ still succeeds locally and the Sync panel says why. Saves from several installs
 merge: evidence is combined by its stable GitHub ID, and a repository's import
 progress never moves backwards.
 
-**GitHub Gist (recommended).** Set `CLOUD_SAVE=gist` and restart. There is no
-extra account or secret: RepoQuest uses `GITHUB_TOKEN`, which then needs
+Set `CLOUD_SAVE=gist` and restart. There is no extra account or secret: RepoQuest uses `GITHUB_TOKEN`, which then needs
 **Gists: Read and write** (fine-grained token) or the `gist` scope (classic
 token). The first save creates one secret Gist owned by the token's user, with
 a `repoquest-save-<username>.json` file per player; a new install finds it
@@ -207,16 +174,8 @@ read it. It only contains public-repository contributions and your
 self-reported profile answers. Two installs saving at the same moment can
 overwrite each other's latest changes; the next sync puts them back.
 
-**Postgres, such as Neon.** For very large histories, several machines syncing
-often, or SQL access to your data: create a free project at
-[Neon](https://neon.tech) (any Postgres 14+ works), set `CLOUD_SAVE=postgres` and
-`CLOUD_DATABASE_URL` to its connection string, including `?sslmode=require`, and
-restart. RepoQuest creates a `repoquest` schema on first use. The connection
-string gives full access to the save, so keep it server-side like
-`GITHUB_TOKEN` and never commit it.
-
-Combine `DATABASE_PATH=:memory:` with either option to keep nothing on the
-machine and restore from the cloud on every start.
+Combine `DATABASE_PATH=:memory:` with `CLOUD_SAVE=gist` to keep nothing on the
+machine and restore from the Gist on every start.
 
 Next.js reads `.env.local` automatically. Docker Compose reads `.env` for
 interpolation; it does not automatically read `.env.local`.

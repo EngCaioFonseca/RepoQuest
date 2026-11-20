@@ -215,8 +215,8 @@ export interface StorageStatus {
   local: "memory" | "file";
   /** `off` when cloud save is not configured; `error` when it is misconfigured or the last save/restore failed. */
   cloudSave: "off" | "ready" | "error";
-  /** `gist` saves to a secret GitHub Gist; `postgres` to a bring-your-own Postgres database. */
-  cloudBackend: "gist" | "postgres" | null;
+  /** `gist` saves to a secret GitHub Gist owned by the token user. */
+  cloudBackend: "gist" | null;
   /** Safe, user-facing reason for an `error` state. */
   cloudProblem: string | null;
   lastCloudSaveAt: string | null;
