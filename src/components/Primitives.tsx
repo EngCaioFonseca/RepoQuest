@@ -1,4 +1,5 @@
 import { percent } from "@/lib/client/format";
+export { Panel } from "./Panel";
 
 export function Meter({ value, max, label, tone = "gold" }: { value: number; max: number; label: string; tone?: string }) {
   const p = percent(value, max);
@@ -6,21 +7,6 @@ export function Meter({ value, max, label, tone = "gold" }: { value: number; max
     <div className={`meter tone-${tone}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.min(value, max)}>
       <span style={{ width: `${p}%` }} />
     </div>
-  );
-}
-
-export function Panel({ id, title, hint, children, actions }: { id: string; title: string; hint?: string; children: React.ReactNode; actions?: React.ReactNode }) {
-  return (
-    <section className="panel" id={id} aria-labelledby={`${id}-h`}>
-      <header className="panel-head">
-        <div>
-          <h2 id={`${id}-h`}>{title}</h2>
-          {hint && <p className="hint">{hint}</p>}
-        </div>
-        {actions}
-      </header>
-      {children}
-    </section>
   );
 }
 

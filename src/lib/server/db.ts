@@ -6,6 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 const LEGACY_PATH = resolve(process.cwd(), ".repoquest", "repoquest.sqlite");
 const DEFAULT_PATH = resolve(process.cwd(), "data", "repoquest.db");
 const DB_TIMEOUT_MS = 5000;
+const MEMORY_PATH = ":memory:";
 const SCHEMA_SQL = `
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
@@ -78,6 +79,7 @@ const SCHEMA_SQL = `
 
 function resolveDatabasePath(): string {
   const modern = process.env.DATABASE_PATH?.trim();
+  if (modern === MEMORY_PATH) return MEMORY_PATH;
   if (modern) return resolve(modern);
   const legacy = process.env.REPOQUEST_DB_PATH?.trim();
   if (legacy) return resolve(legacy);
@@ -131,7 +133,7 @@ function ensureProfilePreferenceColumns(connection: DatabaseSync): void {
 }
 
 function initializeDatabase(): DatabaseSync {
-  mkdirSync(dirname(DB_PATH), { recursive: true });
+  if (DB_PATH !== MEMORY_PATH) mkdirSync(dirname(DB_PATH), { recursive: true });
   const connection = new DatabaseSync(DB_PATH, {
     timeout: DB_TIMEOUT_MS,
     enableForeignKeyConstraints: true,
@@ -159,4 +161,8 @@ export function nowIso(): string {
 
 export function databasePath(): string {
   return DB_PATH;
+}
+
+export function isMemoryDatabase(): boolean {
+  return DB_PATH === MEMORY_PATH;
 }

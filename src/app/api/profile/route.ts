@@ -1,5 +1,6 @@
 import { profilePreferenceUpdateRequestSchema } from "@/lib/contracts";
 import { errorJson } from "@/lib/server/api-error";
+import { saveToCloud } from "@/lib/server/cloud-save";
 import { updateCurrentClassPreference, ProfilePreferenceError } from "@/lib/server/profile";
 import { rejectIfNonJson, rejectIfUntrustedLocalRequest } from "@/lib/server/request-guard";
 
@@ -26,6 +27,7 @@ export async function PATCH(request: Request): Promise<Response> {
 
   try {
     const updated = updateCurrentClassPreference(parsed.data.username, parsed.data.preference);
+    await saveToCloud(updated.username);
     return Response.json(updated);
   } catch (error) {
     if (error instanceof ProfilePreferenceError) {

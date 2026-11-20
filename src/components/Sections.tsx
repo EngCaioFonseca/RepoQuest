@@ -1,8 +1,8 @@
 import { describeCoverage, isIncomplete, reasonText } from "@/lib/client/coverage";
 import { formatDate, formatXp } from "@/lib/client/format";
-import type { AchievementView, ContributionView, QuestView, RepoView, TrackView } from "@/lib/client/types";
+import type { AchievementView, ContributionView, RepoView, TrackView } from "@/lib/client/types";
 import { Empty, Meter, Panel } from "./Primitives";
-import { AchievementToken, EvidenceKindIcon, QuestChest, RealmCrest, TrackEmblem } from "./VisualObjects";
+import { AchievementToken, EvidenceKindIcon, RealmCrest, TrackEmblem } from "./VisualObjects";
 
 const TRACK_META = {
   engineering: { name: "Engineering", blurb: "Merged code and fixes" },
@@ -36,7 +36,8 @@ export function Tracks({ tracks }: { tracks: TrackView[] }) {
 
 export function Realms({ repos }: { repos: RepoView[] }) {
   return (
-    <Panel id="realms" title="Repository realms" hint="Existing contribution history is imported per repository; coverage shows how much was read.">
+    <Panel id="realms" title="Repository realms" hint="Existing contribution history is imported per repository; coverage shows how much was read." defaultOpen={false}
+      summary={`${repos.length} realm${repos.length === 1 ? "" : "s"}, ${repos.reduce((n, r) => n + r.evidenceCount, 0)} contributions`}>
       {repos.length === 0 ? <Empty title="No realms charted" body="Add repositories and press Sync to import your existing contribution history." /> : (
         <ul className="realms">
           {repos.map((r) => {
@@ -70,37 +71,10 @@ export function Realms({ repos }: { repos: RepoView[] }) {
   );
 }
 
-export function Quests({ quests }: { quests: QuestView[] }) {
-  return (
-    <Panel id="quests" title="Quests" hint="Suggested next steps. Clear a quest to unseal its treasure chest.">
-      {quests.length === 0 ? <Empty title="No active quests" body="Quests appear once a snapshot is available." /> : (
-        <ul className="quests">
-          {quests.map((q) => (
-            <li key={q.id} className={`quest${q.completed ? " quest-complete" : ""}`}>
-              <div className="quest-row">
-                <QuestChest completed={q.completed} track={q.track} size="md" />
-                <div className="quest-body">
-                  <div className="quest-top">
-                    <h3>{q.title}</h3>
-                    <span className={`chip${q.completed ? " chip-earned" : ""}`}>{q.completed ? "Chest opened" : `~${q.rewardXp} XP`}</span>
-                  </div>
-                  <p className="small">{q.description}</p>
-                  <Meter value={q.progress} max={q.target} label={`${q.title} progress`} tone={q.track} />
-                  <p className="small">{Math.min(q.progress, q.target)} of {q.target}. XP is earned only from imported evidence.</p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Panel>
-  );
-}
-
 export function Journal({ items }: { items: AchievementView[] }) {
   const unlocked = items.filter((a) => a.unlocked).length;
   return (
-    <Panel id="journal" title="Achievement journal" hint={items.length ? `${unlocked} of ${items.length} tokens unlocked` : undefined}>
+    <Panel id="journal" title="Achievement journal" hint={items.length ? `${unlocked} of ${items.length} tokens unlocked` : undefined} defaultOpen={false}>
       {items.length === 0 ? <Empty title="Journal is blank" body="Achievements will appear after the first snapshot." /> : (
         <ul className="journal">
           {items.map((a) => (
@@ -142,7 +116,8 @@ export function Journal({ items }: { items: AchievementView[] }) {
 
 export function Recent({ items, incomplete }: { items: ContributionView[]; incomplete: boolean }) {
   return (
-    <Panel id="recent" title="Contribution evidence" hint="Original contribution dates. Evidence is kept separately from derived XP.">
+    <Panel id="recent" title="Contribution evidence" hint="Original contribution dates. Evidence is kept separately from derived XP." defaultOpen={false}
+      summary={items.length ? `${items.length} item${items.length === 1 ? "" : "s"}, latest ${formatDate(items[0].occurredAt)}` : undefined}>
       {items.length === 0 ? (
         <Empty title={incomplete ? "No evidence recovered yet" : "No contribution history found"}
           body={incomplete ? "History import is incomplete, so this does not mean you have no past contributions. Sync again to continue." : "Supported history was read for the selected repositories and contained no matching contributions."} />

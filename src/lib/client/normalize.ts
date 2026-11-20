@@ -47,7 +47,18 @@ export function normalizeDashboard(s: DashboardSnapshot): DashboardView {
       evidence: a.evidenceIds.map((id) => evidenceById.get(id)).filter((e): e is NonNullable<typeof e> => Boolean(e) && safeUrl(e?.url) !== "").map((e) => ({ label: e.title, url: e.url })),
       missingEvidence: a.evidenceIds.filter((id) => !evidenceById.get(id) || !safeUrl(evidenceById.get(id)?.url)).length,
     })),
-    quests: (s.quests ?? []).map((q) => ({ id: q.id, title: q.title, description: q.description, track: q.track, progress: q.progress, target: Math.max(1, q.target), completed: q.completed, rewardXp: q.rewardXp })),
+    quests: (s.quests ?? []).map((q) => ({
+      id: q.id, chainId: q.chainId, tier: q.tier, title: q.title, description: q.description, track: q.track, progress: q.progress, target: Math.max(1, q.target),
+      completed: q.completed, rewardXp: q.rewardXp, reward: q.reward, recommendation: q.recommendation ?? null, endsAt: q.endsAt ?? null,
+    })),
+    questLog: {
+      completed: (s.questLog?.completed ?? []).map(({ evidenceIds, ...q }) => ({
+        ...q,
+        evidence: evidenceIds.map((id) => evidenceById.get(id)).filter((e): e is NonNullable<typeof e> => Boolean(e) && safeUrl(e?.url) !== "").map((e) => ({ label: e.title, url: e.url })),
+        missingEvidence: evidenceIds.filter((id) => !evidenceById.get(id) || !safeUrl(evidenceById.get(id)?.url)).length,
+      })),
+      renown: s.questLog?.renown ?? { points: 0, rank: "Wanderer", nextRank: null, nextRankPoints: null },
+    },
     characterClass: normalizeClass(s),
     earnedTitle: s.profile.title,
     preference: { isAiEngineer: s.classPreference?.isAiEngineer ?? false, aiToolUsage: s.classPreference?.aiToolUsage ?? "unspecified", mageActive: s.classPreference?.mageActive ?? false, editable: s.classPreference?.editable ?? false, mageQuiz: s.classPreference?.mageQuiz ?? null, magePath: s.classPreference?.magePath ?? null },
@@ -58,6 +69,7 @@ export function normalizeDashboard(s: DashboardSnapshot): DashboardView {
       return { ...discipline, evidence, unlinked: evidenceIds.length - evidence.length };
     }),
     warnings: s.warnings ?? [],
+    storage: s.storage ?? null,
   };
 }
 

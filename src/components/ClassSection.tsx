@@ -49,7 +49,7 @@ export function ClassSection({ view }: { view: DashboardView }) {
   const partial = view.repositories.some((r) => isIncomplete(r.coverage));
   const scopeText = view.scope.kind === "global" ? "all tracked repositories" : view.scope.repositoryId;
   return (
-    <Panel id="class" title="Class" hint={`Role your contributions point to in ${scopeText}.`}>
+    <Panel id="class" title="Class" hint={`Role your contributions point to in ${scopeText}.`} summary={`${c.name} (${STATE_LABEL[c.state] ?? c.state})`}>
       <div className={`class-head class-${c.id}`}>
         <ClassPortrait classId={c.id} size="lg" />
         <div>
@@ -75,6 +75,9 @@ export function ClassSection({ view }: { view: DashboardView }) {
           <div className="mixbar" role="img" aria-label={`Class mix: ${c.mix.map((m) => `${className(m.classId)} ${Math.round(m.share * 100)}%`).join(", ")}`}>
             {c.mix.map((m) => <span key={m.classId} className={`seg class-${m.classId}`} style={{ flexGrow: Math.max(m.share, 0.02) }} />)}
           </div>
+          <p className="small">{c.mix.map((m) => `${className(m.classId)} ${Math.round(m.share * 100)}%`).join(" · ")}</p>
+          <details className="more">
+          <summary>Class mix evidence ({c.mix.length} class{c.mix.length === 1 ? "" : "es"})</summary>
           <ul className="mix">
             {c.mix.map((m) => (
               <li key={m.classId} className={`mix-row class-${m.classId}`}>
@@ -83,9 +86,14 @@ export function ClassSection({ view }: { view: DashboardView }) {
               </li>
             ))}
           </ul>
+          </details>
 
           <h3 className="sub">Specialties</h3>
           {c.specialties.length === 0 ? <p className="small">No technical specialty stood out in this view.</p> : (
+            <>
+            <ul className="titles" aria-label="Specialties">{c.specialties.map((p) => <li key={p.id} className="chip">{p.label} ({p.evidence.length + p.unlinked})</li>)}</ul>
+            <details className="more">
+            <summary>Specialty evidence ({c.specialties.length})</summary>
             <ul className="specs">
               {c.specialties.map((p) => (
                 <li key={p.id} className="spec">
@@ -95,11 +103,13 @@ export function ClassSection({ view }: { view: DashboardView }) {
                 </li>
               ))}
             </ul>
+            </details>
+            </>
           )}
           <p className="small">{c.qualifying} qualifying contribution{c.qualifying === 1 ? "" : "s"} counted{c.rejected > 0 ? `, ${c.rejected} did not qualify` : ""}. Classifier {c.classifierVersion}.</p>
         </>
       )}
-      {c.limits.length > 0 && <ul className="limits small" aria-label="Classification limits">{c.limits.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+      {c.limits.length > 0 && <details className="more"><summary>Classification limits ({c.limits.length})</summary><ul className="limits small" aria-label="Classification limits">{c.limits.map((l, i) => <li key={i}>{l}</li>)}</ul></details>}
       <p className="small"><a href={`/about${view.scope.kind === "repository" ? `?repository=${encodeURIComponent(view.scope.repositoryId)}` : ""}#classes`}>How classes are decided</a></p>
     </Panel>
   );

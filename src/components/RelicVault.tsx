@@ -10,6 +10,7 @@ export function RelicVault({ view }: { view: DashboardView }) {
       id="vault"
       title="Relic vault & chests"
       hint="Tangible items, tokens, and treasure chests unlocked by your contributions in this view."
+      summary={`${vault.unlockedCount} of ${vault.totalCount} relics forged, ${vault.chestsOpened} quest chest${vault.chestsOpened === 1 ? "" : "s"} opened`}
     >
       <div className="vault-banner">
         <QuestChest completed={vault.chestsOpened > 0} size="lg" />

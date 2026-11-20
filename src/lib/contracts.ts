@@ -122,17 +122,67 @@ export interface Achievement {
   evidenceIds: string[];
 }
 
+export type QuestTrack = SkillTrack | "general";
+export type RelicRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+
+/** A collectible earned by completing a quest. Cosmetic: it never adds XP or changes rank E–S. */
+export interface Relic {
+  id: string;
+  name: string;
+  icon: string;
+  rarity: RelicRarity;
+  description: string;
+}
+
 export interface Quest {
   id: string;
+  /** Questline this quest belongs to; the next tier appears as soon as this one completes. */
+  chainId: string;
+  /** 1-based position in the questline. Monthly bounties use 1. */
+  tier: number;
   title: string;
   description: string;
-  track: SkillTrack;
+  track: QuestTrack;
   repositoryId: string | null;
   progress: number;
   target: number;
   completed: boolean;
   /** Suggested effort only; no XP is granted until evidence is imported. */
   rewardXp: number;
+  reward: Relic;
+  /** Why this quest is suggested next, or null. */
+  recommendation: string | null;
+  /** ISO-8601 end of a time-limited quest (monthly bounty), else null. */
+  endsAt: string | null;
+}
+
+export interface CompletedQuest {
+  id: string;
+  chainId: string;
+  tier: number;
+  title: string;
+  description: string;
+  track: QuestTrack;
+  target: number;
+  /** Original date of the evidence that completed the quest. */
+  completedAt: string;
+  /** Character level right after the completing evidence was credited. */
+  levelAtCompletion: number;
+  evidenceIds: string[];
+  reward: Relic;
+}
+
+export interface Renown {
+  points: number;
+  rank: string;
+  nextRank: string | null;
+  nextRankPoints: number | null;
+}
+
+/** Quest history, derived deterministically from evidence; nothing here is stored. */
+export interface QuestLog {
+  completed: CompletedQuest[];
+  renown: Renown;
 }
 
 export interface CharacterClassSpecialty {
@@ -209,6 +259,20 @@ export interface MagePath {
   selfReported: true;
 }
 
+/** Where this server keeps player state. Never exposes paths or connection strings. */
+export interface StorageStatus {
+  /** `memory` discards everything when the server stops; `file` is the local SQLite database. */
+  local: "memory" | "file";
+  /** `off` when cloud save is not configured; `error` when it is misconfigured or the last save/restore failed. */
+  cloudSave: "off" | "ready" | "error";
+  /** `gist` saves to a secret GitHub Gist owned by the token user. */
+  cloudBackend: "gist" | null;
+  /** Safe, user-facing reason for an `error` state. */
+  cloudProblem: string | null;
+  lastCloudSaveAt: string | null;
+  restoredFromCloud: boolean;
+}
+
 export interface DashboardSnapshot {
   source: DataSource;
   /** All character values, evidence and coverage below use this scope. */
@@ -229,11 +293,13 @@ export interface DashboardSnapshot {
   evidence: ContributionEvidence[];
   achievements: Achievement[];
   quests: Quest[];
+  questLog: QuestLog;
   characterClass: CharacterClass;
   classPreference: ContributorClassPreference;
   mastery: MasteryProgress;
   /** Partial imports and provider limitations must remain visible. */
   warnings: string[];
+  storage?: StorageStatus;
 }
 
 const githubLogin = /^(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;

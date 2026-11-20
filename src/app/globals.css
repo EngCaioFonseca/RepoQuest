@@ -236,6 +236,41 @@ select:hover { border-color: var(--verd); }
 @media (max-width: 600px) { .quiz-options { grid-template-columns: 1fr; } .mage-result { padding: var(--s3); } }
 .chip.self { margin-left: var(--s2); font: 400 .78rem var(--sans); font-style: normal; vertical-align: middle; }
 
+/* quests, relics and renown */
+.quest.suggested { border-color: var(--verd); }
+.quest.done { border-left: 3px solid var(--ok); }
+.quest-reward { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.suggest { color: var(--verd); }
+.relic { --rc: var(--mute); display: inline-flex; align-items: center; gap: var(--s2); padding: 2px var(--s3) 2px var(--s2); border-radius: var(--r); border: 1px solid var(--rc); background: color-mix(in srgb, var(--rc) 12%, var(--ink)); color: var(--bone); font-size: var(--t-sm); max-width: 100%; }
+.relic-icon { font-size: 1.15rem; line-height: 1; }
+.relic-name { font-weight: 600; overflow-wrap: anywhere; }
+.relic-rarity { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--rc); }
+.relic.compact { padding: 0 var(--s2); }
+.rarity-common { --rc: #9fb0ad; } .rarity-uncommon { --rc: var(--ok); } .rarity-rare { --rc: var(--frost); } .rarity-epic { --rc: var(--amethyst); } .rarity-legendary, .rarity-mythic { --rc: #f5cf6a; }
+.rarity-legendary { box-shadow: 0 0 10px color-mix(in srgb, #f5cf6a 35%, transparent); }
+.renown { margin-bottom: var(--s3); }
+.renown-line { margin: 0; font-family: var(--serif); }
+.renown-line b { color: var(--ember); font-size: var(--t-lg); }
+.recent-rewards { margin-top: var(--s4); }
+.recent-rewards ul { display: grid; gap: var(--s2); margin-top: var(--s2); }
+.arsenal { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.level-group + .level-group { margin-top: var(--s2); }
+.level-head { display: flex; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); padding-bottom: var(--s2); border-bottom: 1px solid var(--rule); }
+
+/* collapsible panels */
+.panel-title { flex: 1; min-width: 0; }
+.panel-head:has(.panel-title) { display: flex; gap: var(--s3); align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.panel-toggle { display: inline-flex; align-items: center; gap: var(--s2); min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.panel-toggle:hover { color: var(--verd); }
+.chev { display: inline-block; font-size: .8em; color: var(--verd); transition: transform .15s; }
+.panel-toggle[aria-expanded="true"] .chev, details[open] > summary .chev { transform: rotate(90deg); }
+.panel.collapsed { padding-bottom: var(--s3); }
+.panel.collapsed .panel-head { margin-bottom: 0; }
+.panel-summary { color: var(--bone); }
+.panel-tools { display: flex; justify-content: flex-end; gap: var(--s2); margin: var(--s2) 0; }
+details.level-group > summary { cursor: pointer; list-style: none; min-height: 44px; }
+details.level-group > summary::-webkit-details-marker { display: none; }
+details.level-group:not([open]) > summary { margin-bottom: 0; }
 
 /* visual objects, medallions, chests, tokens & relic vault */
 .hero-emblems { display: flex; flex-direction: column; align-items: center; gap: var(--s3); }
@@ -328,19 +363,14 @@ select:hover { border-color: var(--verd); }
 .rarity-bar { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
 .rarity-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: .76rem; border: 1px solid var(--rc, var(--rule-2)); background: var(--ink); color: var(--rc, var(--mute)); }
 .rarity-pill b { font-variant-numeric: tabular-nums; }
-.rarity-common { --rc: #9fb0ad; }
-.rarity-uncommon { --rc: var(--ok); }
-.rarity-rare { --rc: var(--frost); }
-.rarity-epic { --rc: var(--amethyst); }
-.rarity-mythic { --rc: #f5cf6a; }
 
 .relic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s2); }
 .relic-card { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: center; padding: var(--s2) var(--s3); border-radius: var(--r); background: var(--ink); border: 1px solid var(--rule); transition: border-color .15s ease; }
 .relic-card.unlocked { border-color: color-mix(in srgb, var(--rc, var(--verd)) 65%, var(--rule)); background: linear-gradient(145deg, color-mix(in srgb, var(--rc, var(--verd)) 8%, var(--ink)), var(--ink) 70%); }
 .relic-card.locked { opacity: .66; }
-.relic-icon { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--rc, var(--mute)); }
-.relic-icon.locked { color: var(--rule-2); }
-.relic-icon.unlocked { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--rc, var(--verd)) 32%, transparent)); }
+.vault-relic-icon { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--rc, var(--mute)); }
+.vault-relic-icon.locked { color: var(--rule-2); }
+.vault-relic-icon.unlocked { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--rc, var(--verd)) 32%, transparent)); }
 .relic-body { min-width: 0; }
 .relic-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1); }
 .relic-head h4 { margin: 0; font: 600 .92rem var(--serif); color: var(--bone); }

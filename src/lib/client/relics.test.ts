@@ -25,14 +25,19 @@ function makeView(overrides: Partial<DashboardView> = {}): DashboardView {
     contributions: [],
     achievements: [],
     quests: [
-      { id: "q1", title: "Forge 5", description: "desc", track: "engineering", progress: 2, target: 5, completed: false, rewardXp: 0 },
-      { id: "q2", title: "Docs 4", description: "desc", track: "documentation", progress: 4, target: 4, completed: true, rewardXp: 0 },
+      { id: "q1", chainId: "engineering", tier: 1, title: "Forge 5", description: "desc", track: "engineering", progress: 2, target: 5, completed: false, rewardXp: 0, reward: { id: "r1", name: "Forge Hammer", rarity: "common", icon: "🔨", description: "desc" }, recommendation: null, endsAt: null },
+      { id: "q2", chainId: "documentation", tier: 1, title: "Docs 4", description: "desc", track: "documentation", progress: 4, target: 4, completed: true, rewardXp: 0, reward: { id: "r2", name: "Quill", rarity: "common", icon: "🪶", description: "desc" }, recommendation: null, endsAt: null },
     ],
+    questLog: {
+      completed: [],
+      renown: { points: 0, rank: "Initiate", nextRank: "Wayfarer", nextRankPoints: 10 },
+    },
     characterClass: null,
     earnedTitle: "Contributor",
     preference: { isAiEngineer: false, aiToolUsage: "unspecified", mageActive: false, mageQuiz: null, magePath: null, editable: true },
     mastery: [],
     warnings: [],
+    storage: null,
     ...overrides,
   };
 }

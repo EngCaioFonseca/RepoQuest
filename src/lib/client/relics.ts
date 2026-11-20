@@ -27,7 +27,7 @@ const RARITY_ORDER: RelicRarity[] = ["common", "uncommon", "rare", "epic", "myth
 
 export function deriveRelicVault(view: DashboardView): RelicVaultSummary {
   const unlockedAch = new Set(view.achievements.filter((a) => a.unlocked).map((a) => a.id));
-  const completedQuests = view.quests.filter((q) => q.completed).length;
+  const completedQuests = Math.max(view.questLog.completed.length, view.quests.filter((q) => q.completed).length);
   const unlockedMonarchs = view.mastery.filter((m) => Boolean(m.unlockedAt));
   const isGlobal = view.scope.kind === "global";
 

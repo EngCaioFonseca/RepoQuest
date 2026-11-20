@@ -11,7 +11,8 @@ const disciplineNames = { backend: "Backend", frontend: "Frontend", ai: "AI engi
 
 export function MasterySection({ view, incomplete }: { view: DashboardView; incomplete: boolean }) {
   return (
-    <Panel id="mastery" title="Monarch ascension" hint="Earned specialty achievements. The endgame after Rank S.">
+    <Panel id="mastery" title="Monarch ascension" hint="Earned specialty achievements. The endgame after Rank S." defaultOpen={false}
+      summary={`${view.mastery.filter((m) => m.unlockedAt !== null).length} of ${view.mastery.length} Monarch titles earned`}>
       <p>Reach Rank {guide.requiredRank}, then demonstrate your specialty with {guide.requiredContributions} qualifying contributions across {guide.requiredDistinctMonths} distinct UTC calendar months in this view. Existing history counts.</p>
       <p className="small">These titles come from contribution evidence, not your Mage quiz. Self-reported Intelligence Monarch and earned specialty Monarchs are different accomplishments.</p>
       {view.mode === "demo" && <p className="notice small">Sample character progress, not your real achievements.</p>}

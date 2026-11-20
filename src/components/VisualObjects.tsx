@@ -481,7 +481,7 @@ export function RelicItemIcon({
     return <QuestChest completed={unlocked} size="sm" />;
   }
   return (
-    <span className={`relic-icon rarity-${rarity} ${unlocked ? "unlocked" : "locked"}`} aria-hidden="true">
+    <span className={`vault-relic-icon rarity-${rarity} ${unlocked ? "unlocked" : "locked"}`} aria-hidden="true">
       <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
         <rect x="4" y="4" width="40" height="40" rx="8" fill="var(--ink)" stroke="currentColor" strokeWidth="1.8" />
         <rect x="8" y="8" width="32" height="32" rx="5" stroke="currentColor" strokeOpacity=".28" strokeWidth="1" />
