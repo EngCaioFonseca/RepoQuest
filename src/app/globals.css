@@ -77,6 +77,12 @@ nav a:hover { border-bottom-color: var(--verd); background: var(--slate); }
 .sigil { position: relative; width: 112px; height: 112px; display: grid; place-items: center; --c: var(--mute); }
 .sigil svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--ink); stroke: var(--c); stroke-width: 3; }
 .sigil svg .inner { stroke-width: 1.5; stroke-opacity: .55; fill: none; }
+.sigil svg .diamond { stroke-opacity: .35; stroke-dasharray: 4 3; }
+.sigil svg .rivets circle { fill: var(--c); stroke: none; }
+.sigil svg .crown-rays line { stroke: var(--c); stroke-width: 2; stroke-linecap: round; }
+.sigil svg .crown { fill: var(--c); stroke: var(--c); stroke-width: 1; }
+.sigil.rank-S { filter: drop-shadow(0 0 12px rgba(245, 207, 106, .28)); }
+.sigil.rank-A { filter: drop-shadow(0 0 10px rgba(255, 138, 168, .22)); }
 .sigil span { position: relative; font: 600 3rem var(--serif); color: var(--c); }
 .rank-E { --c: #9fb0ad; } .rank-D { --c: #7fe0a6; } .rank-C { --c: #74bdf0; } .rank-B { --c: #b9a0f5; } .rank-A { --c: #ff8aa8; } .rank-S { --c: #f5cf6a; }
 
@@ -229,3 +235,121 @@ select:hover { border-color: var(--verd); }
 .mastery-gates .met { color: var(--ok); }
 @media (max-width: 600px) { .quiz-options { grid-template-columns: 1fr; } .mage-result { padding: var(--s3); } }
 .chip.self { margin-left: var(--s2); font: 400 .78rem var(--sans); font-style: normal; vertical-align: middle; }
+
+
+/* visual objects, medallions, chests, tokens & relic vault */
+.hero-emblems { display: flex; flex-direction: column; align-items: center; gap: var(--s3); }
+.hero-class-medallion { display: grid; justify-items: center; gap: var(--s1); text-decoration: none; }
+.hero-class-medallion:hover .class-portrait { transform: translateY(-2px); box-shadow: 0 0 18px color-mix(in srgb, var(--cc, var(--verd)) 38%, transparent); }
+.hero-class-tag { font: 600 .82rem var(--serif); color: var(--cc, var(--bone)); letter-spacing: .02em; }
+.you-emblems { display: flex; align-items: center; gap: var(--s3); }
+
+.class-portrait { position: relative; display: inline-grid; place-items: center; border-radius: 50% 10px 50% 10px; overflow: hidden; border: 2px solid var(--cc, var(--rule-2)); background: var(--ink); flex-shrink: 0; transition: transform .18s ease, box-shadow .18s ease; box-shadow: 0 0 12px color-mix(in srgb, var(--cc, var(--verd)) 22%, transparent); }
+.class-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.class-portrait .portrait-frame { position: absolute; inset: 3px; border: 1px solid color-mix(in srgb, var(--cc, var(--rule-2)) 45%, transparent); border-radius: inherit; pointer-events: none; }
+.class-portrait-sm { width: 58px; height: 58px; }
+.class-portrait-md { width: 88px; height: 88px; }
+.class-portrait-lg { width: 108px; height: 108px; }
+
+.obj-icon { flex-shrink: 0; display: inline-block; vertical-align: middle; color: var(--cc, currentColor); }
+.inline-icon-head { display: inline-flex; align-items: center; gap: var(--s2); }
+.title-chip { display: inline-flex; align-items: center; gap: 6px; border-color: color-mix(in srgb, var(--ember) 45%, var(--rule-2)); }
+.title-ribbon-icon { color: var(--ember); flex-shrink: 0; }
+.chip-earned { border-color: var(--verd); color: var(--verd); background: color-mix(in srgb, var(--verd) 12%, var(--slate-2)); }
+
+.track-emblem { display: inline-grid; place-items: center; flex-shrink: 0; }
+.track-engineering .track-emblem { color: var(--copper); }
+.track-documentation .track-emblem { color: var(--frost); }
+.track-review .track-emblem { color: var(--amethyst); }
+
+.quest-row { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: center; }
+.quest-body { min-width: 0; }
+.quest.quest-complete { border-color: color-mix(in srgb, var(--warn) 55%, var(--rule)); background: linear-gradient(135deg, color-mix(in srgb, var(--warn) 8%, var(--ink)), var(--ink) 65%); }
+.quest-chest { position: relative; display: inline-grid; place-items: center; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule-2); background: var(--ink); flex-shrink: 0; }
+.quest-chest img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.quest-chest-sm { width: 44px; height: 44px; }
+.quest-chest-md { width: 64px; height: 64px; }
+.quest-chest-lg { width: 88px; height: 88px; border-radius: 10px; }
+.quest-chest.opened { border-color: var(--warn); box-shadow: 0 0 16px rgba(242, 194, 92, .28); }
+.quest-chest.locked { opacity: .82; }
+.quest-chest .chest-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, rgba(245, 207, 106, .18), transparent 68%); pointer-events: none; }
+
+.ach-row { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: start; }
+.ach-body { min-width: 0; }
+.ach-token { display: inline-grid; place-items: center; flex-shrink: 0; }
+.ach-token.locked { color: var(--rule-2); opacity: .78; }
+.ach-token.unlocked.token-engineering { color: var(--copper); filter: drop-shadow(0 0 8px rgba(232, 147, 90, .28)); }
+.ach-token.unlocked.token-documentation { color: var(--frost); filter: drop-shadow(0 0 8px rgba(116, 189, 240, .28)); }
+.ach-token.unlocked.token-review { color: var(--amethyst); filter: drop-shadow(0 0 8px rgba(185, 160, 245, .28)); }
+.ach-token.unlocked.token-general { color: var(--warn); filter: drop-shadow(0 0 8px rgba(242, 194, 92, .28)); }
+.ach-token.unlocked.token-monarch { color: #f5cf6a; filter: drop-shadow(0 0 10px rgba(245, 207, 106, .36)); }
+
+.mastery-head { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: center; margin-bottom: var(--s2); }
+.mastery-title-col { min-width: 0; }
+.monarch-crest { display: inline-grid; place-items: center; flex-shrink: 0; }
+.monarch-crest.locked { color: var(--rule-2); opacity: .75; }
+.monarch-crest.unlocked { filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 35%, transparent)); }
+.monarch-backend.unlocked { color: var(--amethyst); }
+.monarch-frontend.unlocked { color: var(--frost); }
+.monarch-ai.unlocked { color: var(--verd); }
+.monarch-systems.unlocked { color: var(--copper); }
+.monarch-qa.unlocked { color: var(--ok); }
+.monarch-documentation.unlocked { color: #f5cf6a; }
+.monarch-review.unlocked { color: #ff8aa8; }
+
+.spec-backend { color: var(--copper); }
+.spec-frontend { color: var(--frost); }
+.spec-ai { color: var(--amethyst); }
+.spec-systems { color: var(--verd); }
+.spec-qa { color: var(--ok); }
+.spec-general { color: var(--mute); }
+
+.realm-crest { display: inline-grid; place-items: center; flex-shrink: 0; }
+.realm-tone-ok { color: var(--ok); }
+.realm-tone-work { color: var(--frost); }
+.realm-tone-warn { color: var(--warn); }
+.realm-tone-bad { color: var(--bad); }
+.realm-tone-idle { color: var(--mute); }
+
+.ev-icon { display: inline-grid; place-items: center; margin-top: 2px; flex-shrink: 0; }
+.ev-engineering { color: var(--copper); }
+.ev-documentation { color: var(--frost); }
+.ev-review { color: var(--amethyst); }
+
+.mage-visuals { display: flex; flex-direction: column; align-items: center; gap: var(--s2); flex-shrink: 0; }
+.mage-path-icon { color: var(--amethyst); }
+.class-card-head { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: start; }
+.class-card-head p { margin: var(--s1) 0 0; }
+.monarch-guide-card { border-top-color: #f5cf6a; }
+
+/* relic vault */
+.vault-banner { display: grid; grid-template-columns: auto 1fr; gap: var(--s4); align-items: center; padding: var(--s3); border: 1px solid var(--rule-2); border-radius: var(--r); background: linear-gradient(135deg, var(--slate-2), var(--ink) 70%); margin-bottom: var(--s3); }
+.vault-summary { min-width: 0; }
+.rarity-bar { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+.rarity-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: .76rem; border: 1px solid var(--rc, var(--rule-2)); background: var(--ink); color: var(--rc, var(--mute)); }
+.rarity-pill b { font-variant-numeric: tabular-nums; }
+.rarity-common { --rc: #9fb0ad; }
+.rarity-uncommon { --rc: var(--ok); }
+.rarity-rare { --rc: var(--frost); }
+.rarity-epic { --rc: var(--amethyst); }
+.rarity-mythic { --rc: #f5cf6a; }
+
+.relic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s2); }
+.relic-card { display: grid; grid-template-columns: auto 1fr; gap: var(--s3); align-items: center; padding: var(--s2) var(--s3); border-radius: var(--r); background: var(--ink); border: 1px solid var(--rule); transition: border-color .15s ease; }
+.relic-card.unlocked { border-color: color-mix(in srgb, var(--rc, var(--verd)) 65%, var(--rule)); background: linear-gradient(145deg, color-mix(in srgb, var(--rc, var(--verd)) 8%, var(--ink)), var(--ink) 70%); }
+.relic-card.locked { opacity: .66; }
+.relic-icon { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--rc, var(--mute)); }
+.relic-icon.locked { color: var(--rule-2); }
+.relic-icon.unlocked { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--rc, var(--verd)) 32%, transparent)); }
+.relic-body { min-width: 0; }
+.relic-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1); }
+.relic-head h4 { margin: 0; font: 600 .92rem var(--serif); color: var(--bone); }
+.relic-card.locked .relic-head h4 { color: var(--mute); }
+.rarity-tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--rc, var(--mute)); font-weight: 600; }
+
+@media (max-width: 860px) {
+  .hero-emblems { flex-direction: row; justify-content: flex-start; }
+}
+@media (max-width: 520px) {
+  .vault-banner, .quest-row, .ach-row { grid-template-columns: 1fr; }
+}

@@ -2,11 +2,12 @@ import { describeCoverage, isIncomplete, reasonText } from "@/lib/client/coverag
 import { formatDate, formatXp } from "@/lib/client/format";
 import type { AchievementView, ContributionView, QuestView, RepoView, TrackView } from "@/lib/client/types";
 import { Empty, Meter, Panel } from "./Primitives";
+import { AchievementToken, EvidenceKindIcon, QuestChest, RealmCrest, TrackEmblem } from "./VisualObjects";
 
 const TRACK_META = {
-  engineering: { name: "Engineering", glyph: "⚔", blurb: "Merged code and fixes" },
-  documentation: { name: "Documentation", glyph: "✎", blurb: "Docs and guides" },
-  review: { name: "Review", glyph: "◈", blurb: "Reviews that help others ship" },
+  engineering: { name: "Engineering", blurb: "Merged code and fixes" },
+  documentation: { name: "Documentation", blurb: "Docs and guides" },
+  review: { name: "Review", blurb: "Reviews that help others ship" },
 } as const;
 
 export function Tracks({ tracks }: { tracks: TrackView[] }) {
@@ -18,7 +19,11 @@ export function Tracks({ tracks }: { tracks: TrackView[] }) {
           const m = TRACK_META[t.id];
           return (
             <li key={t.id} className={`track track-${t.id}`}>
-              <div className="track-top"><span className="glyph" aria-hidden="true">{m.glyph}</span><div><h3>{m.name}</h3><p className="hint">{m.blurb}</p></div><span className="lv">Lv {t.level}</span></div>
+              <div className="track-top">
+                <TrackEmblem track={t.id} />
+                <div><h3>{m.name}</h3><p className="hint">{m.blurb}</p></div>
+                <span className="lv">Lv {t.level}</span>
+              </div>
               <Meter value={t.xp} max={Math.max(total, 1)} label={`${m.name} share of total XP`} tone={t.id} />
               <p className="meta"><span>{formatXp(t.xp)} XP</span><span>{t.evidenceCount} evidence item{t.evidenceCount === 1 ? "" : "s"}</span><span>{total > 0 ? Math.round((t.xp / total) * 100) : 0}% of total XP</span></p>
             </li>
@@ -38,7 +43,13 @@ export function Realms({ repos }: { repos: RepoView[] }) {
             const c = r.coverage; const d = describeCoverage(c);
             return (
               <li key={r.slug} className="realm">
-                <div className="quest-top"><a href={r.url} target="_blank" rel="noopener noreferrer">{r.slug}</a><span className={`chip cov cov-${d.tone}`}>{d.label}</span></div>
+                <div className="quest-top">
+                  <div className="inline-icon-head">
+                    <RealmCrest tone={d.tone} />
+                    <a href={r.url} target="_blank" rel="noopener noreferrer">{r.slug}</a>
+                  </div>
+                  <span className={`chip cov cov-${d.tone}`}>{d.label}</span>
+                </div>
                 <p className="meta"><span>{r.evidenceCount} contribution{r.evidenceCount === 1 ? "" : "s"}</span><span>{formatXp(r.xp)} XP{isIncomplete(c) ? " (provisional)" : ""}</span></p>
                 <p className="small">{d.detail}</p>
                 <dl className="cov-grid">
@@ -61,15 +72,23 @@ export function Realms({ repos }: { repos: RepoView[] }) {
 
 export function Quests({ quests }: { quests: QuestView[] }) {
   return (
-    <Panel id="quests" title="Quests" hint="Suggested next steps.">
+    <Panel id="quests" title="Quests" hint="Suggested next steps. Clear a quest to unseal its treasure chest.">
       {quests.length === 0 ? <Empty title="No active quests" body="Quests appear once a snapshot is available." /> : (
         <ul className="quests">
           {quests.map((q) => (
-            <li key={q.id} className="quest">
-              <div className="quest-top"><h3>{q.title}</h3><span className="chip">{q.completed ? "Complete" : `~${q.rewardXp} XP`}</span></div>
-              <p className="small">{q.description}</p>
-              <Meter value={q.progress} max={q.target} label={`${q.title} progress`} tone={q.track} />
-              <p className="small">{Math.min(q.progress, q.target)} of {q.target}. XP is earned only from imported evidence.</p>
+            <li key={q.id} className={`quest${q.completed ? " quest-complete" : ""}`}>
+              <div className="quest-row">
+                <QuestChest completed={q.completed} track={q.track} size="md" />
+                <div className="quest-body">
+                  <div className="quest-top">
+                    <h3>{q.title}</h3>
+                    <span className={`chip${q.completed ? " chip-earned" : ""}`}>{q.completed ? "Chest opened" : `~${q.rewardXp} XP`}</span>
+                  </div>
+                  <p className="small">{q.description}</p>
+                  <Meter value={q.progress} max={q.target} label={`${q.title} progress`} tone={q.track} />
+                  <p className="small">{Math.min(q.progress, q.target)} of {q.target}. XP is earned only from imported evidence.</p>
+                </div>
+              </div>
             </li>
           ))}
         </ul>
@@ -81,30 +100,38 @@ export function Quests({ quests }: { quests: QuestView[] }) {
 export function Journal({ items }: { items: AchievementView[] }) {
   const unlocked = items.filter((a) => a.unlocked).length;
   return (
-    <Panel id="journal" title="Achievement journal" hint={items.length ? `${unlocked} of ${items.length} unlocked` : undefined}>
+    <Panel id="journal" title="Achievement journal" hint={items.length ? `${unlocked} of ${items.length} tokens unlocked` : undefined}>
       {items.length === 0 ? <Empty title="Journal is blank" body="Achievements will appear after the first snapshot." /> : (
         <ul className="journal">
           {items.map((a) => (
             <li key={a.id} className={`ach ${a.unlocked ? "on" : "off"}`}>
-              <div className="ach-top"><h3>{a.name}</h3><span className="chip">{a.unlocked ? `Unlocked ${formatDate(a.unlockedAt)}` : "Locked"}</span></div>
-              <p className="small">{a.description}</p>
-              {!a.unlocked ? <><Meter value={a.progress} max={a.target} label={`${a.name} progress`} /><p className="small">{a.progress} / {a.target}</p></> : null}
-              {a.unlocked && a.missingEvidence > 0 && <p className="small warn">{a.missingEvidence} qualifying evidence item{a.missingEvidence === 1 ? " is" : "s are"} not available as a link.</p>}
-              {a.evidence.length > 0 && (
-                <>
-                  <ul className="evidence" aria-label={`Evidence for ${a.name}`}>
-                    {a.evidence.slice(0, 3).map((e) => <li key={e.url}><a href={e.url} target="_blank" rel="noopener noreferrer">{e.label}</a></li>)}
-                  </ul>
-                  {a.evidence.length > 3 && (
-                    <details className="more">
-                      <summary>Show {a.evidence.length - 3} more evidence items for {a.name}</summary>
-                      <ul className="evidence" aria-label={`More evidence for ${a.name}`}>
-                        {a.evidence.slice(3).map((e) => <li key={e.url}><a href={e.url} target="_blank" rel="noopener noreferrer">{e.label}</a></li>)}
+              <div className="ach-row">
+                <AchievementToken id={a.id} track={a.track} unlocked={a.unlocked} />
+                <div className="ach-body">
+                  <div className="ach-top">
+                    <h3>{a.name}</h3>
+                    <span className={`chip${a.unlocked ? " chip-earned" : ""}`}>{a.unlocked ? `Unlocked ${formatDate(a.unlockedAt)}` : "Locked"}</span>
+                  </div>
+                  <p className="small">{a.description}</p>
+                  {!a.unlocked ? <><Meter value={a.progress} max={a.target} label={`${a.name} progress`} tone={a.track === "general" ? "gold" : a.track} /><p className="small">{a.progress} / {a.target}</p></> : null}
+                  {a.unlocked && a.missingEvidence > 0 && <p className="small warn">{a.missingEvidence} qualifying evidence item{a.missingEvidence === 1 ? " is" : "s are"} not available as a link.</p>}
+                  {a.evidence.length > 0 && (
+                    <>
+                      <ul className="evidence" aria-label={`Evidence for ${a.name}`}>
+                        {a.evidence.slice(0, 3).map((e) => <li key={e.url}><a href={e.url} target="_blank" rel="noopener noreferrer">{e.label}</a></li>)}
                       </ul>
-                    </details>
+                      {a.evidence.length > 3 && (
+                        <details className="more">
+                          <summary>Show {a.evidence.length - 3} more evidence items for {a.name}</summary>
+                          <ul className="evidence" aria-label={`More evidence for ${a.name}`}>
+                            {a.evidence.slice(3).map((e) => <li key={e.url}><a href={e.url} target="_blank" rel="noopener noreferrer">{e.label}</a></li>)}
+                          </ul>
+                        </details>
+                      )}
+                    </>
                   )}
-                </>
-              )}
+                </div>
+              </div>
             </li>
           ))}
         </ul>
@@ -123,7 +150,7 @@ export function Recent({ items, incomplete }: { items: ContributionView[]; incom
         <ul className="recent">
           {items.slice(0, 30).map((c) => (
             <li key={c.id} className="contrib">
-              <span className={`dot dot-${c.track}`} aria-hidden="true" />
+              <EvidenceKindIcon kind={c.kind} track={c.track} />
               <div>
                 {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer">{c.title}</a> : <span>{c.title}</span>}
                 <p className="meta"><span>{c.kind}, {c.state}</span><span>{c.repo}</span><span>{formatDate(c.occurredAt)}</span><span>{c.track}</span></p>

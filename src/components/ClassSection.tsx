@@ -3,6 +3,7 @@ import type { CharacterClassId } from "@/lib/contracts";
 import { isIncomplete } from "@/lib/client/coverage";
 import type { ClassEvidenceView, DashboardView } from "@/lib/client/types";
 import { Empty, Panel } from "./Primitives";
+import { ClassMiniIcon, ClassPortrait, SpecialtyBadgeIcon } from "./VisualObjects";
 
 export const CLASS_GLYPH: Record<CharacterClassId, string> = { adventurer: "⚑", healer: "✚", warrior: "⚔", mage: "✦", scribe: "✎", guardian: "⛨" };
 
@@ -35,7 +36,7 @@ export function ClassBadge({ view }: { view: DashboardView }) {
   if (!c) return null;
   return (
     <p className={`class-line class-${c.id}`}>
-      <span className="class-glyph" aria-hidden="true">{CLASS_GLYPH[c.id]}</span>
+      <ClassMiniIcon classId={c.id} size={20} />
       <a href="#class"><strong>{c.name}</strong></a>
       <span className="chip">{STATE_LABEL[c.state] ?? c.state}</span>
     </p>
@@ -50,7 +51,7 @@ export function ClassSection({ view }: { view: DashboardView }) {
   return (
     <Panel id="class" title="Class" hint={`Role your contributions point to in ${scopeText}.`}>
       <div className={`class-head class-${c.id}`}>
-        <span className="class-seal" aria-hidden="true">{CLASS_GLYPH[c.id]}</span>
+        <ClassPortrait classId={c.id} size="lg" />
         <div>
           <h3>{c.name} <span className="chip">{STATE_LABEL[c.state] ?? c.state}</span></h3>
           <p>{c.summary}</p>
@@ -77,7 +78,7 @@ export function ClassSection({ view }: { view: DashboardView }) {
           <ul className="mix">
             {c.mix.map((m) => (
               <li key={m.classId} className={`mix-row class-${m.classId}`}>
-                <div className="quest-top"><h4><span className="class-glyph" aria-hidden="true">{CLASS_GLYPH[m.classId]}</span> {className(m.classId)}</h4><span className="chip">{Math.round(m.share * 100)}%, {m.evidenceCount} contribution{m.evidenceCount === 1 ? "" : "s"}</span></div>
+                <div className="quest-top"><h4 className="inline-icon-head"><ClassMiniIcon classId={m.classId} size={18} /> {className(m.classId)}</h4><span className="chip">{Math.round(m.share * 100)}%, {m.evidenceCount} contribution{m.evidenceCount === 1 ? "" : "s"}</span></div>
                 <EvidenceLinks items={m.evidence} label={`${className(m.classId)} evidence`} unlinked={m.unlinked} />
               </li>
             ))}
@@ -88,7 +89,7 @@ export function ClassSection({ view }: { view: DashboardView }) {
             <ul className="specs">
               {c.specialties.map((p) => (
                 <li key={p.id} className="spec">
-                  <div className="quest-top"><h4>{p.label}</h4><span className="chip">{p.evidence.length + p.unlinked} contribution{p.evidence.length + p.unlinked === 1 ? "" : "s"}</span></div>
+                  <div className="quest-top"><h4 className="inline-icon-head"><SpecialtyBadgeIcon specialtyId={p.id} size={18} /> {p.label}</h4><span className="chip">{p.evidence.length + p.unlinked} contribution{p.evidence.length + p.unlinked === 1 ? "" : "s"}</span></div>
                   <p className="small">{p.explanation}</p>
                   <EvidenceLinks items={p.evidence} label={`${p.label} evidence`} unlinked={p.unlinked} />
                 </li>
