@@ -5,7 +5,6 @@ import type {
   DashboardSnapshot,
   Profile,
   Progression,
-  Quest,
   Rank,
   Repository,
   SkillTrack,
@@ -15,6 +14,7 @@ import type {
 } from "@/lib/contracts";
 import { buildProfileWithDisplayTitle, defaultClassPreference, deriveCharacterClass, withMagePreference } from "./classes";
 import { deriveMastery, getMasteryGuide } from "./mastery";
+import { deriveQuestBoard, type QuestScoring } from "./quests";
 
 export const SCORING_VERSION = "v2";
 export const TRACK_NAMES: Record<SkillTrack, string> = {
@@ -132,6 +132,23 @@ const RANK_GUIDE = [
 function xpForNextLevel(level: number): number {
   return Math.max(LEVEL_STEP, level * LEVEL_STEP);
 }
+
+function xpToReachLevel(level: number): number {
+  let total = 0;
+  for (let l = 1; l < level; l += 1) total += xpForNextLevel(l);
+  return total;
+}
+
+const QUEST_SCORING: QuestScoring = {
+  levelOf: (xp) => levelFromXp(xp).level,
+  xpToReachLevel,
+  xpPerItem: {
+    engineering: XP_RULES.mergedEngineeringPr,
+    documentation: XP_RULES.documentationIssue,
+    review: XP_RULES.submittedReview,
+    any: Math.min(...Object.values(XP_RULES)),
+  },
+};
 
 function levelFromXp(totalXp: number): { level: number; levelXp: number; nextLevelXp: number } {
   let level = 1;
@@ -441,47 +458,6 @@ function applyXp(input: ContributionEvidence[]): ContributionEvidence[] {
   });
 }
 
-function deriveQuests(state: EvidenceState): Quest[] {
-  const engineering = mergedPullRequests(state).length;
-  const docs = state.byTrack.documentation.length;
-  const review = state.byTrack.review.length;
-  return [
-    {
-      id: "quest-engineering-5",
-      title: "Forge 5 merged changes",
-      description: "Land five merged pull requests across any tracked repositories.",
-      track: "engineering",
-      repositoryId: null,
-      progress: Math.min(engineering, 5),
-      target: 5,
-      completed: engineering >= 5,
-      rewardXp: 0,
-    },
-    {
-      id: "quest-docs-4",
-      title: "Document 4 improvements",
-      description: "Submit four evidence-backed documentation contributions.",
-      track: "documentation",
-      repositoryId: null,
-      progress: Math.min(docs, 4),
-      target: 4,
-      completed: docs >= 4,
-      rewardXp: 0,
-    },
-    {
-      id: "quest-review-5",
-      title: "Review 5 pull requests",
-      description: "Submit five qualifying pull-request reviews.",
-      track: "review",
-      repositoryId: null,
-      progress: Math.min(review, 5),
-      target: 5,
-      completed: review >= 5,
-      rewardXp: 0,
-    },
-  ];
-}
-
 export function deriveProgression(
   profileBase: Omit<Profile, "title" | "displayTitle">,
   repositories: Repository[],
@@ -522,6 +498,8 @@ export function deriveProgression(
       .filter((item) => item.unlockedAt !== null)
       .map((item) => item.name),
   ];
+  const generatedAt = new Date();
+  const questBoard = deriveQuestBoard(evidence, scope, QUEST_SCORING, generatedAt);
   const progression: Progression = {
     scoringVersion: SCORING_VERSION,
     totalXp,
@@ -537,7 +515,7 @@ export function deriveProgression(
     scope,
     trackedRepositories,
     liveSyncAvailable,
-    generatedAt: new Date().toISOString(),
+    generatedAt: generatedAt.toISOString(),
     lastSyncedAt,
     profile: {
       ...buildProfileWithDisplayTitle(
@@ -553,7 +531,8 @@ export function deriveProgression(
     repositories,
     evidence,
     achievements: [...scopedAchievements, ...mastery.achievements],
-    quests: deriveQuests(ctx),
+    quests: questBoard.quests,
+    questLog: questBoard.questLog,
     characterClass: deriveCharacterClass(evidence),
     classPreference: withMagePreference(classPreferenceInput ?? defaultClassPreference(classPreferenceEditable), classPreferenceEditable),
     mastery: mastery.progress,

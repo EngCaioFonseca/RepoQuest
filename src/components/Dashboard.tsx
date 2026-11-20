@@ -12,7 +12,8 @@ import { ScopeSwitch } from "./ScopeSwitch";
 import { ProfilePanel, type PrefDraft } from "./ProfilePanel";
 import { ClassBadge, ClassSection } from "./ClassSection";
 import { MasterySection } from "./MasterySection";
-import { Journal, Quests, Realms, Recent, Tracks } from "./Sections";
+import { Journal, Realms, Recent, Tracks } from "./Sections";
+import { Quests } from "./QuestSections";
 import { SyncPanel, type SyncForm } from "./SyncPanel";
 
 // Prefill is the requested real identity and the shared default repositories. It is form state only:
@@ -129,6 +130,7 @@ export function Dashboard() {
         <button className="btn ghost menu-btn" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu(!menu)}>Menu</button>
         <nav id="nav" aria-label="Sections" className={menu ? "open" : ""}>
           {NAV.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
+          <Link href={`/quests${scopeQuery(scope)}`} onClick={() => setMenu(false)}>Quest log</Link>
           <Link href={`/about${scopeQuery(scope)}`} onClick={() => setMenu(false)}>Guide</Link>
         </nav>
       </header>
@@ -194,7 +196,7 @@ export function Dashboard() {
                 <ClassSection view={view} />
                 <ProfilePanel view={view} onSave={savePrefs} />
                 <Tracks tracks={view.tracks} />
-                <Quests quests={view.quests} />
+                <Quests quests={view.quests} log={view.questLog} logHref={`/quests${scopeQuery(scope)}`} />
                 <Realms repos={view.repositories} />
               </div>
               <div className="col">

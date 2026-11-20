@@ -1,5 +1,6 @@
 // Client view-model derived from src/lib/contracts.ts by normalize.ts.
-import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, Rank, RepositoryCoverage, SkillTrack } from "@/lib/contracts";
+import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, QuestTrack, Rank, Relic, Renown, RepositoryCoverage, SkillTrack } from "@/lib/contracts";
+export type { QuestTrack, Relic, Renown };
 export type { Rank, SkillTrack as Track, RepositoryCoverage };
 export const TRACKS: SkillTrack[] = ["engineering", "documentation", "review"];
 
@@ -7,7 +8,9 @@ export interface TrackView { id: SkillTrack; name: string; level: number; xp: nu
 export interface RepoView { slug: string; url: string; description: string; xp: number; evidenceCount: number; coverage: RepositoryCoverage }
 export interface ContributionView { id: string; kind: string; title: string; url: string; repo: string; track: SkillTrack; state: string; xp: number; occurredAt: string; reason: string }
 export interface AchievementView { id: string; name: string; description: string; track: string; unlocked: boolean; unlockedAt: string | null; progress: number; target: number; evidence: { label: string; url: string }[]; missingEvidence: number }
-export interface QuestView { id: string; title: string; description: string; track: SkillTrack; progress: number; target: number; completed: boolean; rewardXp: number }
+export interface QuestView { id: string; chainId: string; tier: number; title: string; description: string; track: QuestTrack; progress: number; target: number; completed: boolean; rewardXp: number; reward: Relic; recommendation: string | null; endsAt: string | null }
+export interface CompletedQuestView { id: string; chainId: string; tier: number; title: string; description: string; track: QuestTrack; target: number; completedAt: string; levelAtCompletion: number; reward: Relic; evidence: { label: string; url: string }[]; missingEvidence: number }
+export interface QuestLogView { completed: CompletedQuestView[]; renown: Renown }
 
 export interface DashboardView {
   mode: "demo" | "live";
@@ -24,6 +27,7 @@ export interface DashboardView {
   contributions: ContributionView[];
   achievements: AchievementView[];
   quests: QuestView[];
+  questLog: QuestLogView;
   characterClass: ClassView | null;
   /** Earned title only; `title` above is the display title that may append the self-reported Mage badge. */
   earnedTitle: string;

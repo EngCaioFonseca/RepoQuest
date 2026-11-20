@@ -24,6 +24,10 @@ outstanding; see [verification results](docs/reviews/PACKAGING_GATE.md).
 - Credit accessible supported contributions from before installation.
 - Switch between global and repository-specific characters.
 - Earn XP, levels, E–S ranks, titles, achievements, and quests from real evidence.
+- Follow endless questlines and a monthly bounty: finishing a tier opens the next one
+  and awards a collectible relic. The `/quests` log groups completed quests by the
+  level you reached them at, shows your relic arsenal and renown. Relics are
+  trophies only; they never change XP or rank.
 - Discover an evidence-based character class and technical specialties, independently
   calculated for global and repository views.
 - Understand rank requirements and title meanings in the `/about` Progression Guide.

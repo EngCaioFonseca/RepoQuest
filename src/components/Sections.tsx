@@ -1,6 +1,6 @@
 import { describeCoverage, isIncomplete, reasonText } from "@/lib/client/coverage";
 import { formatDate, formatXp } from "@/lib/client/format";
-import type { AchievementView, ContributionView, QuestView, RepoView, TrackView } from "@/lib/client/types";
+import type { AchievementView, ContributionView, RepoView, TrackView } from "@/lib/client/types";
 import { Empty, Meter, Panel } from "./Primitives";
 
 const TRACK_META = {
@@ -53,25 +53,6 @@ export function Realms({ repos }: { repos: RepoView[] }) {
               </li>
             );
           })}
-        </ul>
-      )}
-    </Panel>
-  );
-}
-
-export function Quests({ quests }: { quests: QuestView[] }) {
-  return (
-    <Panel id="quests" title="Quests" hint="Suggested next steps.">
-      {quests.length === 0 ? <Empty title="No active quests" body="Quests appear once a snapshot is available." /> : (
-        <ul className="quests">
-          {quests.map((q) => (
-            <li key={q.id} className="quest">
-              <div className="quest-top"><h3>{q.title}</h3><span className="chip">{q.completed ? "Complete" : `~${q.rewardXp} XP`}</span></div>
-              <p className="small">{q.description}</p>
-              <Meter value={q.progress} max={q.target} label={`${q.title} progress`} tone={q.track} />
-              <p className="small">{Math.min(q.progress, q.target)} of {q.target}. XP is earned only from imported evidence.</p>
-            </li>
-          ))}
         </ul>
       )}
     </Panel>
