@@ -16,6 +16,7 @@ const snap = (over: Partial<DashboardSnapshot> = {}): DashboardSnapshot => ({
   tracks: [], repositories: [{ id: "a/b", owner: "a", name: "b", url: "https://github.com/a/b", description: "", xp: 0, evidenceCount: 0, coverage: cov }],
   evidence: [{ id: "e1", actor: { login: "u", id: 1 }, repositoryId: "a/b", kind: "pull_request", track: "engineering", title: "x", url: "javascript:alert(1)", occurredAt: "2020-01-01T00:00:00Z", state: "merged", xp: 3, reason: "r" }],
   achievements: [{ id: "g", name: "G", description: "", icon: "", track: "general", progress: 1, target: 1, unlockedAt: "2020-01-02T00:00:00Z", evidenceIds: ["e1", "gone"] }], quests: [],
+  questLog: { completed: [], renown: { points: 0, rank: "Wanderer", nextRank: "Squire", nextRankPoints: 5 } },
   characterClass: {
     id: "warrior",
     name: "Warrior",

@@ -7,6 +7,7 @@ import { getClassGuide, isMageActive, AI_TOOL_USAGE_VALUES } from "@/lib/domain/
 import { AI_USAGE_LABELS } from "@/lib/client/types";
 import { CLASS_GLYPH } from "@/components/ClassSection";
 import { scopeQuery } from "@/lib/client/scope";
+import { getQuestGuide } from "@/lib/domain/quests";
 
 export const metadata: Metadata = {
   title: "Progression guide — RepoQuest",
@@ -22,6 +23,7 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
   const q = scopeQuery(scope);
   const guide = getProgressionGuide();
   const cg = getClassGuide();
+  const qg = getQuestGuide();
   const r = guide.xp.evidenceRules;
   const xpRows: [string, number][] = [
     ["Merged engineering pull request", r.mergedEngineeringPr],
@@ -35,7 +37,7 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
       <header className="topbar">
         <Link className="brand" href={`/${q}`}>Repo<span>Quest</span></Link>
         <nav aria-label="Guide sections" className="open">
-          <a href="#you">You</a><a href="#concepts">Concepts</a><a href="#classes">Classes</a><a href="#mastery">Monarchs</a><a href="#ranks">Ranks</a><a href="#titles">Titles</a><a href="#xp">XP</a><a href="#limits">Limits</a>
+          <a href="#you">You</a><a href="#concepts">Concepts</a><a href="#classes">Classes</a><a href="#mastery">Monarchs</a><a href="#ranks">Ranks</a><a href="#titles">Titles</a><a href="#quests">Quests</a><a href="#xp">XP</a><a href="#limits">Limits</a>
         </nav>
         <Link className="btn" href={`/${q}`}>Back to dashboard</Link>
       </header>
@@ -148,6 +150,23 @@ export default async function AboutPage({ searchParams }: { searchParams: Promis
             ))}
           </ul>
           {guide.scopeRules.globalOnlyAchievementIds.length > 0 && <p className="small">Repository breadth badges ({guide.scopeRules.globalOnlyAchievementIds.join(", ")}) exist only in the Global view.</p>}
+        </section>
+
+        <section className="panel" id="quests" aria-labelledby="q-h">
+          <h2 id="q-h">Quests, relics and renown</h2>
+          <p>Quests are grouped into questlines. Each questline always has one active tier: when your evidence reaches its target, the quest is logged as complete on the date of the contribution that finished it, and the next, larger tier opens straight away. Your full history is replayed this way, so past work completes past quests. See them grouped by level in the <Link href={`/quests${q}`}>quest log</Link>.</p>
+          <ul className="titles-list">
+            {qg.chains.map((c) => (
+              <li key={c.id} className="title-card">
+                <div className="quest-top"><h3>{c.name}</h3>{c.globalOnly && <span className="chip">Global view only</span>}</div>
+                <p>e.g. {c.example}. Targets: {c.firstTargets.join(", ")}, and onward.</p>
+                <p className="small"><strong>Relics:</strong> {c.relics.join(", ")}. Later tiers add numbered versions.</p>
+              </li>
+            ))}
+          </ul>
+          <p><strong>Monthly bounty.</strong> Each UTC calendar month opens a bounty for {qg.bountyTarget} qualifying contributions. A claimed bounty awards a Bounty Chest; claiming bounties in consecutive months upgrades the chest&apos;s rarity.</p>
+          <p><strong>Relics and renown.</strong> Every completed quest adds a relic to your arsenal. Higher tiers give rarer relics ({Object.entries(qg.rarityPoints).map(([r, p]) => `${r} ${p}`).join(", ")} renown). Renown ranks: {qg.renownRanks.map((r) => `${r.rank} (${r.points})`).join(", ")}.</p>
+          <p className="small">Quests, relics and renown are trophies on top of your evidence. They never add XP, raise your level or change rank E to S. The XP shown on a quest is only an estimate of what the remaining contributions would earn.</p>
         </section>
 
         <section className="panel" id="xp" aria-labelledby="x-h">

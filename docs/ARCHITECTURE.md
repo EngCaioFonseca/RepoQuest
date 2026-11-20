@@ -207,8 +207,12 @@ their Gist and token.
 Scoring is versioned and deterministic. Levels measure accumulated XP, ranks
 E–S require milestone breadth, and titles represent specific accomplishments.
 Engineering, documentation, and review are separate tracks. Approximately
-15 achievement definitions form the initial journal. Quest rewards are suggested
+15 achievement definitions form the initial journal. Quest `rewardXp` is suggested
 effort, not an independently claimable XP currency: evidence drives credit.
+Quests (`src/lib/domain/quests.ts`) are endless tiered questlines plus a monthly
+bounty. The full history is replayed chronologically, so `questLog.completed`
+carries each tier's real completion date, the level held at that moment, its
+evidence, and a cosmetic relic. Relics and renown never feed XP, level or rank.
 Achievements expose the actual qualifying `evidenceIds`; the UI must not guess
 supporting contributions from a shared skill track.
 

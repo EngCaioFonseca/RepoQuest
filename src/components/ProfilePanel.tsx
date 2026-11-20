@@ -53,7 +53,8 @@ export function ProfilePanel({ view, onSave }: { view: DashboardView; onSave: (d
   }
 
   return (
-    <Panel id="profile" title="Your Mage path" hint="An optional, self-reported portrait of how you work with AI.">
+    <Panel id="profile" title="Your Mage path" hint="An optional, self-reported portrait of how you work with AI." defaultOpen={false}
+      summary={view.preference.magePath ? `Current path: ${view.preference.magePath.name}` : view.preference.mageActive ? "Mage designation on" : "Not set"}>
       <form className="pref-form" onSubmit={submit} noValidate>
         <label className="check">
           <input type="checkbox" checked={identity.isAiEngineer} disabled={!editable || busy} onChange={(event) => { setIdentity({ ...identity, isAiEngineer: event.target.checked }); setStatus({ kind: "idle" }); }} />

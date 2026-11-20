@@ -32,7 +32,7 @@ export function SyncPanel({ form, onChange, onSync, syncing, firstSync, disabled
   const setRepo = (i: number, v: string) => onChange({ ...form, repos: form.repos.map((r, j) => (j === i ? v : r)) });
 
   return (
-    <Panel id="sync" title="Sync" hint={firstSync ? "Your existing contribution history in each repository counts. The first sync imports it, not just recent activity." : "Sync resumes any unfinished history import, then picks up new work. Already-counted evidence is not scored twice."}>
+    <Panel id="sync" title="Sync" defaultOpen={firstSync} hint={firstSync ? "Your existing contribution history in each repository counts. The first sync imports it, not just recent activity." : "Sync resumes any unfinished history import, then picks up new work. Already-counted evidence is not scored twice."}>
       <form className="sync-form" noValidate onSubmit={(e) => { e.preventDefault(); setTouched(true); if (valid && !syncing && !disabled) onSync(); }}>
         <div className="field">
           <label htmlFor="username">GitHub username</label>
