@@ -1,13 +1,11 @@
 import "server-only";
-import type { DashboardScope, DashboardSnapshot, Repository, RepositoryCoverage } from "@/lib/contracts";
+import { DEFAULT_REPOSITORIES, type DashboardScope, type DashboardSnapshot, type Repository, type RepositoryCoverage } from "@/lib/contracts";
 import { defaultClassPreference } from "@/lib/domain/classes";
 import { buildDemoDashboard } from "@/lib/domain/demo";
 import { deriveProgression } from "@/lib/domain/progression";
 import { restoreFromCloudOnce, storageStatus } from "./cloud-save";
 import { emptyCoverage, readClassPreference, readCoverageForUser, readEvidence, readProfile, readRepositories, readSyncState } from "./repository";
 import { resolveTrackedScope } from "./scope";
-
-const DEFAULT_REPOSITORIES = ["chaoss/8Knot", "chaoss/CollectOSS"] as const;
 
 function mapWarnings(coverages: RepositoryCoverage[]): string[] {
   const warnings: string[] = [];

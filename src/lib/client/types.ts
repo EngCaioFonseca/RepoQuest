@@ -1,8 +1,8 @@
 // Client view-model derived from src/lib/contracts.ts by normalize.ts.
-import type { AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, QuestTrack, Rank, Relic, Renown, RepositoryCoverage, SkillTrack, StorageStatus } from "@/lib/contracts";
+import { SKILL_TRACKS, type AiToolUsage, CharacterClassId, CharacterClassState, ContributorClassPreference, DashboardScope, MasteryDisciplineProgress, QuestTrack, Rank, Relic, Renown, RepositoryCoverage, SkillTrack, StorageStatus } from "@/lib/contracts";
 export type { QuestTrack, Relic, Renown };
 export type { Rank, SkillTrack as Track, RepositoryCoverage };
-export const TRACKS: SkillTrack[] = ["engineering", "documentation", "review"];
+export const TRACKS = SKILL_TRACKS;
 
 export interface TrackView { id: SkillTrack; name: string; level: number; xp: number; evidenceCount: number }
 export interface RepoView { slug: string; url: string; description: string; xp: number; evidenceCount: number; coverage: RepositoryCoverage }
