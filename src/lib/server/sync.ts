@@ -217,8 +217,7 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
   const requestLimit = Number.isFinite(MAX_REQUESTS_PER_SYNC) && MAX_REQUESTS_PER_SYNC > 10 ? MAX_REQUESTS_PER_SYNC : 220;
 
   const emitted: ContributionEvidence[] = [];
-  const canContinue = (): boolean => requests < requestLimit;
-  const shouldStop = (): boolean => !canContinue();
+  const requestLimitReached = (): boolean => requests >= requestLimit;
   const resumeCheckpoint = (): CoverageCheckpoint => ({
     ...initialCheckpoint(incrementalMode ? "incremental" : "backfill", incrementalMode ? (start.watermark ?? null) : null),
     phase,
@@ -238,7 +237,7 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
 
   try {
     while (phase === "pulls") {
-      if (!canContinue()) {
+      if (requestLimitReached()) {
         pauseForRequestLimit();
         break;
       }
@@ -281,7 +280,7 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
         let localReviewPage = pullPage === resumePullPage && index === resumePullIndex ? resumeReviewPage : 1;
         while (pull.number > 0) {
           reviewPage = localReviewPage;
-          if (shouldStop()) {
+          if (requestLimitReached()) {
             pauseForRequestLimit();
             break;
           }
@@ -326,7 +325,7 @@ async function syncRepository(username: string, repositoryIdInput: string): Prom
     if (!isPaused() && phase === "issues") {
       while (true) {
         phase = "issues";
-        if (shouldStop()) {
+        if (requestLimitReached()) {
           pauseForRequestLimit();
           break;
         }
