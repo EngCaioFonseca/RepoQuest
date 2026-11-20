@@ -2,13 +2,26 @@
 import { useState } from "react";
 import { MAX_REPOSITORIES } from "@/lib/client/format";
 import { isValidSlug, isValidUsername } from "@/lib/client/format";
+import type { StorageStatus } from "@/lib/contracts";
 import { Panel } from "./Primitives";
+
+function storageNote(storage: StorageStatus | null | undefined): string | null {
+  if (!storage) return null;
+  const local = storage.local === "memory"
+    ? "Progress is kept in memory only and is discarded when the server stops."
+    : "Progress is saved in the local database on this machine.";
+  if (storage.cloudSave === "off") return local;
+  const where = storage.cloudBackend === "gist" ? "a secret GitHub Gist" : "your Postgres database";
+  if (storage.cloudSave === "error") return `${local} Cloud save to ${where} is not working: ${storage.cloudProblem ?? "the last save or restore failed."} It is retried on the next sync.`;
+  return `${local} Cloud save to ${where} is on${storage.restoredFromCloud ? " (restored from your cloud save)" : ""}.`;
+}
 
 export interface SyncForm { username: string; repos: string[] }
 
-export function SyncPanel({ form, onChange, onSync, syncing, firstSync, disabled, serverFields }: {
-  form: SyncForm; onChange: (f: SyncForm) => void; onSync: () => void; syncing: boolean; firstSync: boolean; disabled: boolean; serverFields?: Record<string, string>;
+export function SyncPanel({ form, onChange, onSync, syncing, firstSync, disabled, serverFields, storage }: {
+  form: SyncForm; onChange: (f: SyncForm) => void; onSync: () => void; syncing: boolean; firstSync: boolean; disabled: boolean; serverFields?: Record<string, string>; storage?: StorageStatus | null;
 }) {
+  const storageText = storageNote(storage);
   const [touched, setTouched] = useState(false);
   const userOk = isValidUsername(form.username);
   const badRepos = form.repos.map((r) => r.trim() !== "" && !isValidSlug(r));
@@ -47,6 +60,7 @@ export function SyncPanel({ form, onChange, onSync, syncing, firstSync, disabled
         <div className="sync-actions">
           <button type="submit" className="btn primary" disabled={syncing || disabled} aria-busy={syncing}>{syncing ? "Syncing…" : "Sync contributions"}</button>
           <p className="hint">Nothing is fetched until you press Sync. The GitHub token, if any, is configured on the server and never shown here. {disabled ? " Live sync is currently unavailable because no token is configured." : ""} Demo data stays labelled as demo.</p>
+          {storageText && <p className="hint" data-testid="storage-status">{storageText}</p>}
         </div>
       </form>
     </Panel>

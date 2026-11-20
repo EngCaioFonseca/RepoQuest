@@ -5,6 +5,8 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CLOUD_SAVE: ${CLOUD_SAVE:-}
+      CLOUD_DATABASE_URL: ${CLOUD_DATABASE_URL:-}
       DATABASE_PATH: /app/data/repoquest.db
     volumes:
       - repoquest-data:/app/data

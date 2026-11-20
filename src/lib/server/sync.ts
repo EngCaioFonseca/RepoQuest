@@ -1,5 +1,6 @@
 import "server-only";
 import type { ContributionEvidence, RepositoryCoverage, SyncRequest, SyncResponse } from "@/lib/contracts";
+import { cloudSaveEnabled, cloudSaveProblem, restoreFromCloudOnce, saveToCloud } from "./cloud-save";
 import { buildDashboardSnapshot } from "./dashboard";
 import {
   GitHubSyncError,
@@ -438,6 +439,7 @@ export async function syncFromGitHub(input: SyncRequest): Promise<SyncResponse> 
   if (activeSync) throw new SyncInProgressError();
   activeSync = true;
   try {
+  await restoreFromCloudOnce();
   const requestedUsername = input.username.toLowerCase();
   const profile = await getUser(requestedUsername);
   const username = profile.login.toLowerCase();
@@ -490,6 +492,9 @@ export async function syncFromGitHub(input: SyncRequest): Promise<SyncResponse> 
   const previous = readSyncState();
   const lastSyncedAt = partial ? previous.lastSyncedAt : new Date().toISOString();
   upsertSyncState(username, lastSyncedAt, warnings, [...trackedCanonical]);
+  if (cloudSaveEnabled() && !(await saveToCloud(username))) {
+    warnings.push(`Cloud save failed; this progress is saved locally only and will be retried on the next sync. ${cloudSaveProblem() ?? ""}`.trim());
+  }
   const dashboard = await buildDashboardSnapshot(username, { kind: "global" });
 
   return {
