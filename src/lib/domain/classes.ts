@@ -445,6 +445,9 @@ export function deriveMagePath(quiz: MageQuizAnswers | null): MagePath | null {
   };
 }
 
+/** The stored self-reported answers that decide whether Mage is shown. */
+type MagePreferenceInput = Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null };
+
 export function defaultClassPreference(editable: boolean): ContributorClassPreference {
   return {
     isAiEngineer: false,
@@ -460,13 +463,13 @@ export function isMageActive(input: Pick<ContributorClassPreference, "isAiEngine
   return input.isAiEngineer || input.aiToolUsage === "occasional" || input.aiToolUsage === "frequent" || input.aiToolUsage === "ai_first";
 }
 
-export function deriveDisplayTitle(earnedTitle: string, preference: Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null }): string {
+export function deriveDisplayTitle(earnedTitle: string, preference: MagePreferenceInput): string {
   if (!isMageActive(preference)) return earnedTitle;
   const path = deriveMagePath(preference.mageQuiz ?? null);
   return path ? `${earnedTitle} · Mage — ${path.name}` : `${earnedTitle} · Mage`;
 }
 
-export function withMagePreference(preference: Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null }, editable: boolean): ContributorClassPreference {
+export function withMagePreference(preference: MagePreferenceInput, editable: boolean): ContributorClassPreference {
   const mageActive = isMageActive(preference);
   const magePath = mageActive ? deriveMagePath(preference.mageQuiz ?? null) : null;
   return {
@@ -479,7 +482,7 @@ export function withMagePreference(preference: Pick<ContributorClassPreference, 
   };
 }
 
-export function buildProfileWithDisplayTitle(base: Omit<Profile, "title" | "displayTitle"> & { title: string }, preference: Pick<ContributorClassPreference, "isAiEngineer" | "aiToolUsage"> & { mageQuiz?: MageQuizAnswers | null }): Profile {
+export function buildProfileWithDisplayTitle(base: Omit<Profile, "title" | "displayTitle"> & { title: string }, preference: MagePreferenceInput): Profile {
   return {
     ...base,
     displayTitle: deriveDisplayTitle(base.title, preference),
