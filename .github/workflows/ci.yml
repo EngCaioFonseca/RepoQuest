@@ -37,6 +37,9 @@ jobs:
     name: Test (Node ${{ matrix.label }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +65,19 @@ jobs:
           node-version: "26"
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Test
+        if: ${{ !matrix.use-nvmrc }}
+        run: npm test
+      - name: Test with coverage
+        if: ${{ matrix.use-nvmrc }}
+        run: npm run test:coverage
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.use-nvmrc }}
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
 
   build:
     name: Build
