@@ -1,5 +1,10 @@
 # RepoQuest
 
+[![CI](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/ci.yml)
+[![Docker](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/docker.yml)
+[![Security](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/EngCaioFonseca/RepoQuest/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/EngCaioFonseca/RepoQuest/graph/badge.svg)](https://codecov.io/gh/EngCaioFonseca/RepoQuest)
+
 A local-first, open-source contribution RPG. Grow a character through useful
 repository work: levels, E–S ranks, titles, achievements, three skill tracks, and
 a shareable character card.
