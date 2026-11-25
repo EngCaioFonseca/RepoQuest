@@ -24,6 +24,29 @@ were verified with Podman and standalone Docker Compose on Linux ARM64.
 Native Docker Engine verification and a full accessibility audit remain
 outstanding; see [verification results](docs/reviews/PACKAGING_GATE.md).
 
+## Preview
+
+The character card is the SVG that `GET /api/share` returns, the same file the
+dashboard's **Download card (SVG)** button saves. This one is the maintainer's
+global character, imported from public `chaoss/8Knot` and `chaoss/CollectOSS`
+history:
+
+<p align="center">
+  <img src="docs/images/character-card.svg" alt="RepoQuest character card: Caio Fonseca, Realm Walker, Warrior class, Rank A, level 13, with engineering, documentation and review track XP bars" width="720">
+</p>
+
+The dashboard behind it, in the global view:
+
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="RepoQuest dashboard showing the character header with rank, level progress and titles, the Class panel with class mix and specialties, and collapsed Monarch, achievement and evidence panels" width="900">
+</p>
+
+To put your own card in a README, run RepoQuest, sync your repositories, click
+**Download card (SVG)** (or save `http://localhost:3000/api/share`, adding
+`?repository=owner%2Fname` for a single-repository character), commit the file,
+and reference it with `<img src="path/to/card.svg">`. The card is a snapshot:
+download it again after a sync to update it.
+
 ## Features
 
 - Credit accessible supported contributions from before installation.
