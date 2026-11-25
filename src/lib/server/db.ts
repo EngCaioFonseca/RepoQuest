@@ -7,8 +7,8 @@ const LEGACY_PATH = resolve(process.cwd(), ".repoquest", "repoquest.sqlite");
 const DEFAULT_PATH = resolve(process.cwd(), "data", "repoquest.db");
 const DB_TIMEOUT_MS = 5000;
 const MEMORY_PATH = ":memory:";
+const WAL_RETRY_PAUSE_MS = 25;
 const SCHEMA_SQL = `
-  PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
 
   CREATE TABLE IF NOT EXISTS profiles (
@@ -132,6 +132,30 @@ function ensureProfilePreferenceColumns(connection: DatabaseSync): void {
   }
 }
 
+function isBusyError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes("database is locked");
+}
+
+function pauseSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+// Switching a new file to WAL upgrades a read transaction to a write one. SQLite
+// skips the busy timeout on that upgrade to avoid deadlock, so a concurrent
+// first start fails at once with "database is locked". Retry until the timeout.
+function enableWriteAheadLog(connection: DatabaseSync): void {
+  const deadline = Date.now() + DB_TIMEOUT_MS;
+  for (;;) {
+    try {
+      connection.exec("PRAGMA journal_mode = WAL");
+      return;
+    } catch (error) {
+      if (!isBusyError(error) || Date.now() >= deadline) throw error;
+      pauseSync(WAL_RETRY_PAUSE_MS);
+    }
+  }
+}
+
 function initializeDatabase(): DatabaseSync {
   if (DB_PATH !== MEMORY_PATH) mkdirSync(dirname(DB_PATH), { recursive: true });
   const connection = new DatabaseSync(DB_PATH, {
@@ -139,6 +163,7 @@ function initializeDatabase(): DatabaseSync {
     enableForeignKeyConstraints: true,
   });
   try {
+    if (DB_PATH !== MEMORY_PATH) enableWriteAheadLog(connection);
     connection.exec(SCHEMA_SQL);
     ensureSyncStateColumn(connection);
     ensureProfilePreferenceColumns(connection);

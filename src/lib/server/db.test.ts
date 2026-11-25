@@ -146,6 +146,30 @@ describe("database bootstrap", () => {
     expect(profileColumns.some((column) => column.name === "mage_quiz_json")).toBe(true);
   });
 
+  it("waits for a concurrent writer instead of failing the WAL switch on a new file", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "repoquest-db-wal-switch-"));
+    const databasePath = join(tempDir, "repoquest.sqlite");
+    const legacyPath = join(tempDir, "legacy-ignored.sqlite");
+    const dbModulePath = resolve(process.cwd(), "src/lib/server/db.ts");
+
+    // Holding a write lock on a rollback-journal file makes the WAL switch's
+    // read-to-write upgrade fail with SQLITE_BUSY without using the busy timeout.
+    const writer = new DatabaseSync(databasePath);
+    writer.exec("CREATE TABLE writer_lock (id INTEGER); BEGIN IMMEDIATE; INSERT INTO writer_lock VALUES (1);");
+    const pending = runScript(importAndOpenDbScript(dbModulePath), envWithPaths(databasePath, legacyPath));
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 1000));
+    writer.exec("COMMIT");
+    writer.close();
+    const result = await pending;
+
+    expect(result.stderr).not.toMatch(/database is locked/i);
+    expect(result.code).toBe(0);
+    const verify = new DatabaseSync(databasePath);
+    const mode = verify.prepare("PRAGMA journal_mode").get() as { journal_mode: string };
+    verify.close();
+    expect(mode.journal_mode).toBe("wal");
+  });
+
   it("handles concurrent legacy sync_state migration idempotently", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "repoquest-db-legacy-"));
     const databasePath = join(tempDir, "repoquest.sqlite");
