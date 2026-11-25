@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="470" viewBox="0 0 860 470" role="img" aria-labelledby="title desc">
+  <title id="title">RepoQuest card for engcaiofonseca</title>
+  <desc id="desc">Local-first contribution RPG summary generated from live data.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b252a" />
+      <stop offset="55%" stop-color="#141b1f" />
+      <stop offset="100%" stop-color="#0d1215" />
+    </linearGradient>
+  </defs>
+  <rect width="860" height="470" fill="url(#bg)" rx="18" stroke="#3d5159" stroke-width="2" />
+  <rect x="0" y="0" width="860" height="6" fill="#52d6b8" rx="3" />
+
+  <g transform="translate(722, 46)">
+    <polygon points="48,4 88,26 88,70 48,92 8,70 8,26" fill="#0d1215" stroke="#ff8aa8" stroke-width="3" />
+    <polygon points="48,14 78,31 78,65 48,82 18,65 18,31" fill="none" stroke="#ff8aa8" stroke-opacity="0.45" stroke-width="1.5" />
+    <text x="48" y="61" text-anchor="middle" fill="#ff8aa8" font-size="40" font-weight="700" font-family="Georgia, serif">A</text>
+    <text x="48" y="112" text-anchor="middle" fill="#e8935a" font-size="13" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Warrior</text>
+  </g>
+
+  <text x="36" y="48" fill="#52d6b8" font-size="14" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">RepoQuest • Live sync snapshot • Global</text>
+  <text x="36" y="96" fill="#ece6d6" font-size="34" font-weight="700" font-family="Georgia, serif">Caio Fonseca</text>
+  <text x="36" y="126" fill="#a3b3b0" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif">@engcaiofonseca</text>
+  <text x="36" y="160" fill="#f08a4b" font-size="19" font-style="italic" font-family="Georgia, serif">Realm Walker</text>
+  <text x="36" y="190" fill="#ece6d6" font-size="15" font-family="ui-sans-serif, system-ui, sans-serif">Class: Warrior • Rank A • Lv 13 • 10445 XP</text>
+  <text x="36" y="214" fill="#a3b3b0" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Tokens: 13/22 • Quest chests: 1/7 • Evidence: 102 • Realms: 2</text>
+  
+      <circle cx="46" cy="243" r="6" fill="#e8935a" />
+      <text x="64" y="248" fill="#ece6d6" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">Engineering (Lv 11)</text>
+      <rect x="240" y="234" width="420" height="16" rx="4" fill="#0d1215" stroke="#2b3a41" stroke-width="1" />
+      <rect x="240" y="234" width="311" height="16" rx="4" fill="#e8935a" />
+      <text x="676" y="248" fill="#ece6d6" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">7680 XP</text>
+    
+      <circle cx="46" cy="293" r="6" fill="#74bdf0" />
+      <text x="64" y="298" fill="#ece6d6" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">Documentation (Lv 3)</text>
+      <rect x="240" y="284" width="420" height="16" rx="4" fill="#0d1215" stroke="#2b3a41" stroke-width="1" />
+      <rect x="240" y="284" width="25" height="16" rx="4" fill="#74bdf0" />
+      <text x="676" y="298" fill="#ece6d6" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">595 XP</text>
+    
+      <circle cx="46" cy="343" r="6" fill="#b9a0f5" />
+      <text x="64" y="348" fill="#ece6d6" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">Review (Lv 6)</text>
+      <rect x="240" y="334" width="420" height="16" rx="4" fill="#0d1215" stroke="#2b3a41" stroke-width="1" />
+      <rect x="240" y="334" width="88" height="16" rx="4" fill="#b9a0f5" />
+      <text x="676" y="348" fill="#ece6d6" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">2170 XP</text>
+    
+  <text x="36" y="424" fill="#a3b3b0" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">No warnings</text>
+  <text x="36" y="446" fill="#7c8f8c" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Generated 2026-11-25T16:20:58.355Z. Card omits private evidence details and credentials.</text>
+</svg>
